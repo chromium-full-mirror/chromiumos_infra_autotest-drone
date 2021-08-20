@@ -54,6 +54,19 @@ class SwarmingJobDirectoryTestCase(unittest.TestCase):
                     })
 
 
+class AdminTaskDirectoryTestCase(unittest.TestCase):
+    """Tests AdminTaskDirectory."""
+
+    def test_get_admin_task_directories(self):
+        with _change_to_tempdir():
+            os.makedirs("swarming-abcd01/0")
+            os.makedirs("swarming-abcd02/1")
+            open("swarming-abcd02/1/.admin_tasks_offload_ready", 'w+').close()
+            os.mkdir("not-a-swarming-dir")
+            results = job_directories.AdminTaskDirectory.get_job_directories()
+            self.assertEqual(set(results), {"swarming-abcd02/1"})
+
+
 class GetJobIDOrTaskID(unittest.TestCase):
     """Tests get_job_id_or_task_id."""
 

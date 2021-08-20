@@ -1016,7 +1016,7 @@ class Offloader(object):
                     self.gs_uri, multiprocessing, self._delete_age_limit,
                     console_client)
         classlist = [
-                job_directories.SwarmingJobDirectory,
+                job_directories.AdminTaskDirectory,
         ]
         if options.process_hosts_only or options.process_all:
             classlist.append(job_directories.SpecialJobDirectory)

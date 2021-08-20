@@ -235,6 +235,21 @@ def _find_results_dir(dirname):
     return subdirs
 
 
+def _read_timestamp_from_file(filepath):
+    try:
+        with open(filepath) as f:
+            ts_string = f.read().strip()
+    except Exception:
+        return None
+    try:
+        ts = int(ts_string)
+        return time_utils.epoch_time_to_date_string(ts)
+    except ValueError as e:
+        logging.debug('Error parsing %s: %s', filepath, e)
+        _marker_parse_error_metric.increment()
+        return None
+
+
 _OFFLOAD_MARKER = ".ready_for_offload"
 _marker_parse_error_metric = metrics.Counter(
     'chromeos/autotest/gs_offloader/offload_marker_parse_errors',
@@ -279,19 +294,26 @@ class SwarmingJobDirectory(_JobDirectory):
                  returns the job's created_on time.
         """
         marker_path = os.path.join(self.dirname, _OFFLOAD_MARKER)
-        try:
-            with open(marker_path) as f:
-                ts_string = f.read().strip()
-        except:
-            return None
-        try:
-            ts = int(ts_string)
-            return time_utils.epoch_time_to_date_string(ts)
-        except ValueError as e:
-            logging.debug('Error parsing %s for %s: %s', _OFFLOAD_MARKER,
-                          self.dirname, e)
-            _marker_parse_error_metric.increment()
-            return None
+        return _read_timestamp_from_file(marker_path)
+
+
+class AdminTaskDirectory(_JobDirectory):
+    """Subclass of _JobDirectory for admin tasks."""
+
+    @classmethod
+    def get_job_directories(cls):
+        """Return a list of directories of admin tasks that need offloading."""
+        jobdirs = []
+        # The skylab_swarming_worker generates a special marker for admin tasks
+        # when they are ready to offload to GS.
+        for d in glob.glob('swarming-*/[1-9a-f]*/.admin_task_marker'):
+            jobdirs.append(os.path.dirname(d))
+        return jobdirs
+
+    def get_timestamp_if_finished(self):
+        """Get the timestamp to use for finished jobs."""
+        marker_path = os.path.join(self.dirname, _OFFLOAD_MARKER)
+        return _read_timestamp_from_file(marker_path)
 
 
 _AFE = None
