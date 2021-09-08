@@ -273,8 +273,14 @@ class DeployConfigManager(object):
         if deploy_config.append:
             source = os.path.join(_APPEND_FOLDER,
                                   os.path.basename(deploy_config.target))
-            self.container.attach_run('cat \'%s\' >> \'%s\'' %
-                                      (source, deploy_config.target))
+            # TODO(b/191721645) This is a hack for `/etc/resolv.conf` to bypass
+            # the LXC DNS server, i.e. 10.0.3.1. If this hack works, we will
+            # figure out a better solution.
+            redirect = ' >> '
+            if deploy_config.target == '/etc/resolv.conf':
+                redirect = ' > '
+            self.container.attach_run('cat \'%s\' %s \'%s\'' %
+                                      (source, redirect, deploy_config.target))
         self.container.attach_run(
                 'chmod -R %s \'%s\'' %
                 (deploy_config.permission, deploy_config.target))
