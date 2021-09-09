@@ -1861,7 +1861,7 @@ def GetNonUniBuildLabBoardName(board):
   # and should run on DUT without those string.
   # We strip those string from the board so that lab can handle it correctly.
   SPECIAL_SUFFIX = [
-      '-arcnext$', '-arcvm$', '-arc-r$', '-arc-r-userdebug$', '-blueznext$',
+      '-arcnext$', '-arcvm$', '-arc-r$', '-arc-r-userdebug$', '-connectivitynext$',
       '-kernelnext$', '-kvm$', '-ndktranslation$', '-cfm$', '-campfire$',
       '-borealis$',
   ]
