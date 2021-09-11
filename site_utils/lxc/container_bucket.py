@@ -312,6 +312,16 @@ class ContainerBucket(object):
         if dut_name:
             container.set_hostname(constants.CONTAINER_UTSNAME_FORMAT %
                                    dut_name.replace('.', '-'))
+            # Write DUT IP in /etc/hosts to avoid extra DNS resolution.
+            dut_ip = utils.get_ip_address(dut_name)
+            if dut_ip and dut_ip != dut_name:
+                container.attach_run(constants.APPEND_CMD_FMT % {
+                        'content': '%s %s' % (dut_ip, dut_name),
+                        'file': '/etc/hosts'
+                })
+            else:
+                logging.debug('Cannot or no need to resolve IP of %s.',
+                              dut_name)
 
         container.modify_import_order()
 
