@@ -981,11 +981,10 @@ class ServoMacAddressVerifier(hosts.Verifier):
 class _ResetRepairAction(hosts.RepairAction):
     """Common handling for repair actions that reset a DUT."""
 
-    def _collect_logs(self, host):
-        """Collect logs from a successfully repaired DUT."""
+    def _collect_crash_info(self, host):
+        """Collect crash info from a successfully repaired DUT."""
         dirname = 'after_%s' % self.tag
         local_log_dir = crashcollect.get_crashinfo_dir(host, dirname)
-        host.collect_logs('/var/log', local_log_dir, ignore_errors=True)
         # Collect crash info.
         crashcollect.get_crashinfo(host, None)
 
@@ -1000,7 +999,7 @@ class _ResetRepairAction(hosts.RepairAction):
             try:
                 # Collect logs once we regain ssh access before
                 # clobbering them.
-                self._collect_logs(host)
+                self._collect_crash_info(host)
             except Exception:
                 # If the DUT is up, we want to declare success, even if
                 # log gathering fails for some reason.  So, if there's
