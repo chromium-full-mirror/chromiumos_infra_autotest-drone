@@ -976,11 +976,6 @@ class ImageServerBase(DevServer):
             raise
         response = result.stdout
 
-        # If the curl command's returned HTTP response contains certain
-        # exception string, raise the DevServerException of the response.
-        if 'DownloaderException' in response:
-            raise DevServerException(_strip_http_message(response))
-
         if readline:
             # Remove line terminators and trailing whitespace
             response = response.splitlines()
@@ -1022,9 +1017,11 @@ class ImageServerBase(DevServer):
             else:
                 response = cls.run_ssh_call(
                         call, readline=readline, timeout=timeout)
-            # Retry if devserver service is temporarily down, e.g. in a
-            # devserver push.
-            if ERR_MSG_FOR_DOWN_DEVSERVER in response:
+            # Retry if devserver service is temporarily down, e.g. in an
+            # update.
+            # If the response is of 'Service Unavailable', it must be short
+            # and the error message must be shown in the beginning.
+            if ERR_MSG_FOR_DOWN_DEVSERVER in response[:256]:
                 return False
 
             # Don't return response directly since it may be empty string,
