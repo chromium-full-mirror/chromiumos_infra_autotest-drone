@@ -585,10 +585,11 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                     ).add(stage_time, fields=monarch_fields)
 
 
-    def stage_server_side_package(self, image=None):
+    def stage_server_side_package(self, image=None, image_storage_server=''):
         """Stage autotest server-side package on devserver.
 
         @param image: Full path of an OS image to install or a build name.
+        @param image_storage_server: The GS bucket we download the image from.
 
         @return: A url to the autotest server-side package.
 
@@ -636,8 +637,9 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                     'Build %s is older than %s. Server side packaging is '
                     'disabled.' % (image_name, self.MIN_VERSION_SUPPORT_SSP))
 
-        image_storage_server = CONFIG.get_config_value(
-                'CROS', 'image_storage_server', type=str)
+        if not image_storage_server:
+            image_storage_server = CONFIG.get_config_value(
+                    'CROS', 'image_storage_server', type=str)
         gs_bucket = image_storage_server.lstrip('gs://').rstrip('/')
         return '%s/decompress/%s/%s/%s' % (ds.url(), gs_bucket, image_name,
                                            'autotest_server_package.tar.bz2')

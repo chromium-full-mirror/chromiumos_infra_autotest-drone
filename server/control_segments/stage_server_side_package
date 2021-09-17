@@ -20,7 +20,8 @@ error_msg = None
 for machine in machines:
     try:
         with closing(hosts.create_host(machine)) as host:
-            ssp_url = host.stage_server_side_package(image)
+            ssp_url = host.stage_server_side_package(
+                    image, image_storage_server=image_storage_server)
         break
     except (error.AutoservError, dev_server.DevServerException) as e:
         error_msg = str(e)

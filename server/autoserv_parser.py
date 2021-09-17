@@ -231,6 +231,14 @@ class autoserv_parser(object):
                      ' enabled. The default value is provided via the global'
                      ' config setting for AUTOSERV/container_base_name.'
         )
+        self.parser.add_argument(
+                '--image-storage-server',
+                action='store',
+                type=str,
+                default='',
+                help='The gs path to the image storage server to be used'
+                ' for this autoserv invocation. This overrides the'
+                ' default provided by CROS/image_storage_server.')
         self.parser.add_argument('--py_version',
                                  action='store',
                                  dest='py_version',
