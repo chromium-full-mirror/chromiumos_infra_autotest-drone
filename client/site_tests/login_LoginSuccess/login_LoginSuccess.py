@@ -7,7 +7,7 @@
 try:
     from gi.repository import GObject
 except ImportError:
-    import goboject as GObject
+    import gobject as GObject
 
 from dbus.mainloop.glib import DBusGMainLoop
 
