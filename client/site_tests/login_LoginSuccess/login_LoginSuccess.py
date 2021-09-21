@@ -2,7 +2,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import gobject
+# Since the autotest-drone code is frozen, we don't know which version
+# a client will have...
+try:
+    from gi.repository import GObject
+except ImportError:
+    import goboject as GObject
+
 from dbus.mainloop.glib import DBusGMainLoop
 
 from autotest_lib.client.bin import test
@@ -28,7 +34,7 @@ class login_LoginSuccess(test.test):
         bus_loop = DBusGMainLoop(set_as_default=True)
         self._session_manager = session_manager.connect(bus_loop)
         self._listener = session_manager.SessionSignalListener(
-                gobject.MainLoop())
+                GObject.MainLoop())
 
 
     def run_once(self, stress_run=False, arc_mode=None):
