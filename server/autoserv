@@ -178,6 +178,37 @@ def _stage_ssp(parser, resultsdir):
     return ssp_url
 
 
+def _remove_args_for_ssp(args):
+    """Generate the command line arguments for SSP.
+
+    We pass all current command line arguments to SSP with some exceptions. We
+    must filter out unwanted arguments which may break autoserv to construct a
+    test.
+
+    @param args: The raw argument list of current autoserv process.
+    @return: The list of arguments for SSP.
+    """
+    args.remove('--require-ssp')
+    # --parent_job_id is only useful in autoserv running in host, not in
+    # container. Include this argument will cause test to fail for builds before
+    # CL 286265 was merged.
+    # Similarly, --image-archive-server is only useful for setting up SSP and
+    # is not acceptable by an SSP test.
+    unwanted_arguments = ['--image-storage-server', '--parent_job_id']
+    for a in unwanted_arguments:
+        try:
+            index = args.index(a)
+        except ValueError:
+            continue
+        del args[index]  # Delete the argument name.
+        try:
+            del args[index]  # Delete the argument value.
+        except IndexError:
+            continue
+
+    return args
+
+
 def _run_with_ssp(job, container_id, job_id, results, parser, ssp_url,
                   machines):
     """Run the server job with server-side packaging.
@@ -215,17 +246,7 @@ def _run_with_ssp(job, container_id, job_id, results, parser, ssp_url,
                    'ssp_logs folder for more details.' % e)
         raise
 
-    args = sys.argv[:]
-    args.remove('--require-ssp')
-    # --parent_job_id is only useful in autoserv running in host, not in
-    # container. Include this argument will cause test to fail for builds before
-    # CL 286265 was merged.
-    if '--parent_job_id' in args:
-        index = args.index('--parent_job_id')
-        args.remove('--parent_job_id')
-        # Remove the actual parent job id in command line arg.
-        del args[index]
-
+    args = _remove_args_for_ssp(sys.argv[:])
     # A dictionary of paths to replace in the command line. Key is the path to
     # be replaced with the one in value.
     paths_to_replace = {}
