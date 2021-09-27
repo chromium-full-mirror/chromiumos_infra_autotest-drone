@@ -226,7 +226,8 @@ def _run_with_ssp(job, container_id, job_id, results, parser, ssp_url,
     @param machines: A list of machines to run the test.
     """
     if not ssp_url:
-        job.record('FAIL', None, None,
+        job.record('START', None, None, 'Starting SSP')
+        job.record('END ABORT', None, None,
                    'Failed to stage server-side package')
         raise error.AutoservError('Failed to stage server-side package')
 
