@@ -336,6 +336,26 @@
     "main_name": "ChromeOSWiFi"
   },
   {
+    "autotest_name": "network_WiFi_Perf.vht20",
+    "dashboard_test_name": "network_WiFi_Perf",
+    "main_name": "ChromeOSWiFi"
+  },
+  {
+    "autotest_name": "network_WiFi_Perf.vht20_aes",
+    "dashboard_test_name": "network_WiFi_Perf",
+    "main_name": "ChromeOSWiFi"
+  },
+  {
+    "autotest_name": "network_WiFi_Perf.vht40",
+    "dashboard_test_name": "network_WiFi_Perf",
+    "main_name": "ChromeOSWiFi"
+  },
+  {
+    "autotest_name": "network_WiFi_Perf.vht40_aes",
+    "dashboard_test_name": "network_WiFi_Perf",
+    "main_name": "ChromeOSWiFi"
+  },
+  {
     "autotest_name": "network_WiFi_Perf.vht80",
     "dashboard_test_name": "network_WiFi_Perf",
     "main_name": "ChromeOSWiFi"
