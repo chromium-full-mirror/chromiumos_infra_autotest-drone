@@ -338,6 +338,11 @@ class DeployConfigManager(object):
                 (getpass.getuser(), bool(utils.is_moblab()),
                  lxc_utils.get_host_ip(), shadow_config))
 
+        # Update image_storage_server in case it doesn't use the default one.
+        self.container.attach_run(
+                'echo $\'\n[CROS]\nimage_storage_server: %s\n\' >> %s' %
+                (config.get_config_value(
+                        'CROS', 'image_storage_server'), shadow_config))
 
     def _modify_ssh_config(self):
         """Modify ssh config for it to work inside container.

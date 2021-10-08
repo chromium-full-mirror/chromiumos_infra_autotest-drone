@@ -603,6 +603,11 @@ def run_autoserv(pid_file_manager, results, parser, ssp_url, use_ssp):
         job_kwargs['parent_job_id'] = int(parser.options.parent_job_id)
     if control_filename:
         job_kwargs['control_filename'] = control_filename
+    if parser.options.image_storage_server:
+        global_config.global_config.override_config_value(
+            'CROS', 'image_storage_server',
+            parser.options.image_storage_server)
+
     job = server_job.server_job(**job_kwargs)
 
     job.logging.start_logging()
