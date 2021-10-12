@@ -282,6 +282,10 @@ class AutoservSshPingHostError(AutoservHostError):
     """SSH ping failed"""
 
 
+class AutoservSSPError(AutoservHostError):
+    """SSP setup failed"""
+
+
 class AutoservDiskFullHostError(AutoservHostError):
     """Not enough free disk space on host"""
 

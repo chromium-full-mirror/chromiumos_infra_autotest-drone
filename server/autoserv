@@ -245,7 +245,7 @@ def _run_with_ssp(job, container_id, job_id, results, parser, ssp_url,
         job.record('END ABORT', None, None,
                    'Failed to setup container for test: %s. Check logs in '
                    'ssp_logs folder for more details.' % e)
-        raise
+        raise error.AutoservSSPError
 
     args = _remove_args_for_ssp(sys.argv[:])
     # A dictionary of paths to replace in the command line. Key is the path to
@@ -678,6 +678,11 @@ def run_autoserv(pid_file_manager, results, parser, ssp_url, use_ssp):
 
         finally:
             job.close()
+    except error.AutoservSSPError:
+        # Due to the complexity of the TKO parsing/stainless connection, this
+        # must be 0 so that the "abort" is actually reflected on stainless.
+        exit_code = 0
+        traceback.print_exc()
     except:
         exit_code = 1
         traceback.print_exc()
