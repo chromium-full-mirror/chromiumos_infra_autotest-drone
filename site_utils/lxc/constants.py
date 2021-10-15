@@ -84,7 +84,7 @@ TRUSTY_SITE_PACKAGES_PATH = '/opt/trusty_site_packages'
 SUPPORT_SNAPSHOT_CLONE = True
 
 # Number of seconds to wait for network to be up in a container.
-NETWORK_INIT_TIMEOUT = 1200
+NETWORK_INIT_TIMEOUT = 1800
 # Network bring up is slower in Moblab.
 # TODO(184304822) reset back to 0.1 for the main lab.
 NETWORK_INIT_CHECK_INTERVAL = 1 if IS_MOBLAB else 5
