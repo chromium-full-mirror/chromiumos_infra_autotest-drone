@@ -529,9 +529,19 @@ class BaseServoHost(ssh_host.SSHHost):
 
         """
         command = ('scp -rq %s -o BatchMode=yes -o StrictHostKeyChecking=no '
-                   '-o UserKnownHostsFile=/dev/null -P %d %s "%s"')
-        return command % (self._main_ssh.ssh_option,
-                          self.port, sources, dest)
+                   '-o UserKnownHostsFile=/dev/null %s %s "%s"')
+        port = self.port
+        if port is None:
+            logging.info(
+                    'BaseServoHost: defaulting to port 22. See b/204502754.')
+            port = 22
+        args = (
+                self._main_ssh.ssh_option,
+                ("-P %s" % port),
+                sources,
+                dest,
+        )
+        return command % args
 
 
     def run(self, command, timeout=3600, ignore_status=False,
