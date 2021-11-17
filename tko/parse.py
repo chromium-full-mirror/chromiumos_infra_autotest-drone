@@ -54,6 +54,9 @@ _HARDCODED_CONTROL_FILE_NAMES = (
         'control.from_control_name',
 )
 
+# Max size for the parser is 350mb due to large suites getting throttled.
+DEFAULT_MAX_RESULT_SIZE_KB = 350000
+
 
 def parse_args():
     """Parse args."""
@@ -278,7 +281,7 @@ def _throttle_result_size(path):
 
     max_result_size_KB = _max_result_size_from_control(path)
     if max_result_size_KB is None:
-        max_result_size_KB = control_data.DEFAULT_MAX_RESULT_SIZE_KB
+        max_result_size_KB = DEFAULT_MAX_RESULT_SIZE_KB
 
     try:
         result_utils.execute(path, max_result_size_KB)
@@ -301,7 +304,7 @@ def _max_result_size_from_control(path):
         try:
             max_result_size_KB = control_data.parse_control(
                     control, raise_warnings=False).max_result_size_KB
-            if max_result_size_KB != control_data.DEFAULT_MAX_RESULT_SIZE_KB:
+            if max_result_size_KB != DEFAULT_MAX_RESULT_SIZE_KB:
                 return max_result_size_KB
         except IOError as e:
             tko_utils.dprint(
@@ -386,7 +389,7 @@ def parse_one(db, pid_file_manager, jobname, path, parse_options):
             job.suite = label_info.get('suite', None)
 
     if 'suite' in job.keyval_dict:
-      job.suite = job.keyval_dict['suite']
+        job.suite = job.keyval_dict['suite']
 
     result_utils_lib.LOG =  tko_utils.dprint
     _throttle_result_size(path)
