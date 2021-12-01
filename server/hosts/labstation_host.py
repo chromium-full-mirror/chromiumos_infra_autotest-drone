@@ -7,6 +7,7 @@
 import logging
 
 from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import global_config
 from autotest_lib.server import afe_utils
 from autotest_lib.server.hosts import base_label
 from autotest_lib.server.hosts import cros_label
@@ -18,6 +19,9 @@ from autotest_lib.server.cros.dynamic_suite import tools
 from autotest_lib.client.common_lib.cros import dev_server
 from autotest_lib.server import utils as server_utils
 from autotest_lib.site_utils.rpm_control_system import rpm_client
+
+CONFIG = global_config.global_config
+
 
 class LabstationHost(base_servohost.BaseServoHost):
     """Labstation specific host class"""
@@ -178,10 +182,11 @@ class LabstationHost(base_servohost.BaseServoHost):
         return provision.get_version_label_prefix(image)
 
 
-    def stage_server_side_package(self, image=None):
+    def stage_server_side_package(self, image=None, image_storage_server=''):
         """Stage autotest server-side package on devserver.
 
         @param image: Full path of an OS image to install or a build name.
+        @param image_storage_server: The GS bucket we download the image from.
 
         @return: A url to the autotest server-side package.
 
@@ -198,7 +203,7 @@ class LabstationHost(base_servohost.BaseServoHost):
             image_name = tools.get_build_from_image(image)
             if not image_name:
                 raise error.AutoservError(
-                    'Failed to parse build name from %s' % image)
+                        'Failed to parse build name from %s' % image)
             ds = dev_server.ImageServer.resolve(image_name, hostname)
         else:
             info = self.host_info_store.get()
@@ -221,10 +226,15 @@ class LabstationHost(base_servohost.BaseServoHost):
                     'Failed to stage server-side package. The host has '
                     'no job_repo_url attribute or cros-version label.')
 
-        ds.stage_artifacts(image_name, ['autotest_server_package'])
-        return '%s/static/%s/%s' % (ds.url(), image_name,
-                                    'autotest_server_package.tar.bz2')
-
+        if not image_storage_server:
+            image_storage_server = CONFIG.get_config_value(
+                    'CROS',
+                    'image_storage_server',
+                    type=str,
+                    default='gs://chromeos-image-archive/')
+        gs_bucket = image_storage_server.lstrip('gs://').rstrip('/')
+        return '%s/decompress/%s/%s/%s' % (ds.url(), gs_bucket, image_name,
+                                           'autotest_server_package.tar.bz2')
 
     def repair(self):
         """Attempt to repair a labstation."""
