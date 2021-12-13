@@ -392,7 +392,9 @@ def parse_one(db, pid_file_manager, jobname, path, parse_options):
         job.suite = job.keyval_dict['suite']
 
     result_utils_lib.LOG =  tko_utils.dprint
-    _throttle_result_size(path)
+
+    # Do not throttle results for now (b/207409280)
+    # _throttle_result_size(path)
 
     # Record test result size to job_keyvals
     start_time = time.time()
