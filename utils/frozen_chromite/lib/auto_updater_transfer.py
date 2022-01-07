@@ -617,3 +617,16 @@ class LabEndToEndPayloadTransfer(LabTransfer):
     cmd = ['curl', '-o', os.path.join(payload_dir, saved_filename),
            self._GetStagedUrl(payload_filename, build_id)]
     return cmd
+
+  def _TransferUpdateUtilsPackage(self):
+    """Transfer update-utils package to work directory of the remote device."""
+    logging.notice('Copying update script to device...')
+    source_dir = os.path.join(self._tempdir, 'src')
+    osutils.SafeMakedirs(source_dir)
+    nebraska_wrapper.RemoteNebraskaWrapper.GetNebraskaSrcFile(source_dir)
+
+    # Make sure the device.work_dir exists after any installation and reboot.
+    self._EnsureDeviceDirectory(self._device.work_dir)
+    # Python packages are plain text files.
+    self._device.CopyToWorkDir(source_dir, mode=_SCP, log_output=True,
+                               **self._cmd_kwargs)
