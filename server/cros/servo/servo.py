@@ -259,6 +259,7 @@ def _extract_image_from_tarball(tarball, dest_dir, image_candidates, timeout):
 
     # Check if image candidates are in the list of tarball files
     for image in image_candidates:
+        logging.debug("Trying to extract %s (infra/autotest-drone)", image)
         if image in tarball_files:
             # Extract and return the first image candidate found
             tar_cmd = 'tar xf %s -C %s %s' % (tarball, dest_dir, image)
@@ -1534,22 +1535,21 @@ class Servo(object):
         @return: Path to extracted BIOS image.
         """
 
-        # Try to retrieve firmware build target from the version reported
-        # by the EC. If this doesn't work, we assume the firmware build
-        # target is the same as the model name.
+        # Most boards use the model name as the image filename.
+        bios_image_candidates = [
+                'image-%s.bin' % model,
+        ]
+
+        # If that isn't found try the name from the EC RO version.
         try:
             fw_target = self.get_ec_board()
+            bios_image_candidates.append('image-%s.bin' % fw_target)
         except Exception as err:
-            logging.warn('Failed to get ec_board value; ignoring')
-            fw_target = model
-            pass
+            logging.warning('Failed to get ec_board value; ignoring')
 
-        # Array of candidates for BIOS image
-        bios_image_candidates = [
-                'image.bin',
-                'image-%s.bin' % fw_target,
-                'image-%s.bin' % board
-        ]
+        # Fallback to the name of the board, and then a bare image.bin.
+        bios_image_candidates.append('image-%s.bin' % board)
+        bios_image_candidates.append('image.bin')
 
         # Extract BIOS image from tarball
         dest_dir = os.path.join(os.path.dirname(tarball_path), 'BIOS')
