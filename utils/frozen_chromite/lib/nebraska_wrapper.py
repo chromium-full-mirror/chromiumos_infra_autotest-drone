@@ -338,18 +338,21 @@ class RemoteNebraskaWrapper(multiprocessing.Process):
       raise NebraskaStartupError(str(e))
 
   @staticmethod
-  def GetNebraskaSrcFile(source_dir):
+  def GetNebraskaSrcFile(source_dir, force_download=False):
     """Returns path to nebraska source file.
 
     nebraska is copied to source_dir, either from a local file or by
     downloading from googlesource.com.
+
+    Args:
+      force_download: True to always download nebraska from googlesource.com.
     """
     assert os.path.isdir(source_dir), ('%s must be a valid directory.'
                                        % source_dir)
 
     nebraska_path = os.path.join(source_dir, NEBRASKA_FILENAME)
     checkout = path_util.DetermineCheckout()
-    if checkout.type == path_util.CHECKOUT_TYPE_REPO:
+    if checkout.type == path_util.CHECKOUT_TYPE_REPO and not force_download:
       # ChromeOS checkout. Copy existing file to destination.
       local_src = os.path.join(constants.SOURCE_ROOT, 'src', 'platform',
                                'dev', 'nebraska', NEBRASKA_FILENAME)
@@ -357,8 +360,9 @@ class RemoteNebraskaWrapper(multiprocessing.Process):
       shutil.copy2(local_src, source_dir)
     else:
       # Download from googlesource.
+      logging.info('Downloading nebraska from googlesource')
       nebraska_url_path = '%s/+/%s/%s?format=text' % (
-          'chromiumos/platform/dev-util', 'refs/heads/master',
+          'chromiumos/platform/dev-util', 'refs/heads/main',
           'nebraska/nebraska.py')
       contents_b64 = gob_util.FetchUrl(constants.EXTERNAL_GOB_HOST,
                                        nebraska_url_path)
