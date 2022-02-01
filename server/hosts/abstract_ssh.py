@@ -47,7 +47,7 @@ ENABLE_EXEC_DUT_COMMAND = get_value('AUTOSERV',
 
 # Number of seconds to use the cached up status.
 _DEFAULT_UP_STATUS_EXPIRATION_SECONDS = 300
-_DEFAULT_SSH_PORT = 22
+_DEFAULT_SSH_PORT = None
 
 # Number of seconds to wait for the host to shut down in wait_down().
 _DEFAULT_WAIT_DOWN_TIME_SECONDS = 120
@@ -164,6 +164,16 @@ class AbstractSSHHost(remote.RemoteHost):
         """
         return self._is_client_install_supported
 
+    def is_satlab(self):
+        """Determine if the host is part of satlab
+
+        TODO(otabek@): Remove or update to better logic to determime Satlab.
+
+        @returns True if ths host is running under satlab otherwise False.
+        """
+        if not hasattr(self, '_is_satlab'):
+            self._is_satlab = self.hostname.startswith('satlab-')
+        return self._is_satlab
 
     @property
     def rpc_server_tracker(self):
@@ -176,7 +186,7 @@ class AbstractSSHHost(remote.RemoteHost):
     @property
     def is_default_port(self):
         """Returns True if its port is default SSH port."""
-        return self.port == _DEFAULT_SSH_PORT
+        return self.port == _DEFAULT_SSH_PORT or self.port is None
 
     @property
     def host_port(self):
@@ -205,7 +215,8 @@ class AbstractSSHHost(remote.RemoteHost):
                 hosts_file=hosts_file, connect_timeout=connect_timeout,
                 alive_interval=alive_interval, alive_count_max=alive_count_max,
                 connection_attempts=connection_attempts)])
-        return "/usr/bin/ssh -a -x %s -l %s -p %d" % (ssh_options, user, port)
+        return ("/usr/bin/ssh -a -x %s -l %s %s" %
+                (ssh_options, user, "-p %d " % port if port else ""))
 
 
     @staticmethod
@@ -341,9 +352,10 @@ class AbstractSSHHost(remote.RemoteHost):
         pre-encoded.
         """
         command = ("scp -rq %s -o StrictHostKeyChecking=no "
-                   "-o UserKnownHostsFile=%s -P %d %s '%s'")
+                   "-o UserKnownHostsFile=%s %s%s '%s'")
         return command % (self._main_ssh.ssh_option, self.known_hosts_file,
-                          self.port, sources, dest)
+                          "-P %d " % self.port if self.port else '', sources,
+                          dest)
 
 
     def _make_rsync_compatible_globs(self, path, is_local):

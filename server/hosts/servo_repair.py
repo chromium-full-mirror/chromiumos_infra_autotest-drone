@@ -7,10 +7,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import sys
 import functools
 import logging
 import math
+import sys
 import time
 
 import common
@@ -31,7 +31,6 @@ except ImportError:
     metrics = utils.metrics_mock
 
 from autotest_lib.utils.frozen_chromite.lib import timeout_util
-
 
 def ignore_exception_for_non_cros_host(func):
     """
@@ -87,14 +86,10 @@ class _UpdateVerifier(hosts.Verifier):
 
     def _is_applicable(self, host):
         # Run only for servo_v3 host.
-        if host.is_labstation():
+        if host.is_labstation() or host.is_containerized_servod():
             return False
         # Only run if the host is in the physical lab.
-        if not host.is_in_lab() or host.is_localhost():
-            return False
-        # Skip if the test is being run by test_that, because subnet
-        # restrictions can cause the update to fail.
-        return host.job and host.job.in_lab
+        return host.is_in_lab()
 
     @property
     def description(self):
@@ -133,11 +128,17 @@ class _RootServoPresentVerifier(hosts.Verifier):
         try:
             device = topology.get_root_servo()
         except Exception as e:
-            host.request_reboot()
-            logging.info('Reboot labstation requested, it will be handled'
-                         ' by labstation AdminRepair task.'
-                         ' Unable to detect root servo info from topology.')
-            logging.debug('(Not critical) %s', e)
+            if host.is_containerized_servod():
+                host.restart_servod()
+                logging.debug('Restarting servod container (Not critical) %s',
+                              e)
+            else:
+                host.request_reboot()
+                logging.info(
+                        'Reboot labstation requested, it will be handled'
+                        ' by labstation AdminRepair task.'
+                        ' Unable to detect root servo info from topology.')
+                logging.debug('(Not critical) %s', e)
         if device:
             logging.info('Root servo is present')
             return
@@ -153,13 +154,14 @@ class _RootServoPresentVerifier(hosts.Verifier):
         raise hosts.AutoservVerifyError('Root servo not found!')
 
     def _is_applicable(self, host):
-        # Run only for servos under labstations.
+        if host.is_containerized_servod():
+            logging.info('Servod is running within a container.')
+            return True
         if not host.is_labstation():
+            logging.info('Not supported for servo_v3.')
             return False
         # Only run if the host is in the physical lab.
-        if not host.is_in_lab() or host.is_localhost():
-            return False
-        return True
+        return host.is_in_lab()
 
     @property
     def description(self):
@@ -184,13 +186,15 @@ class _RootServoV3PresentVerifier(hosts.Verifier):
         raise hosts.AutoservVerifyError('Fail to find servo board!')
 
     def _is_applicable(self, host):
+        if host.is_containerized_servod():
+            logging.info('Servod is running within a container.')
+            return False
         # Do not run for servos under labstations.
         if host.is_labstation():
+            logging.info('Servod is running on labstation.')
             return False
         # Only run if the host is in the physical lab.
-        if not host.is_in_lab() or host.is_localhost():
-            return False
-        return True
+        return host.is_in_lab()
 
     @property
     def description(self):
@@ -214,13 +218,15 @@ class _ServoFwVerifier(hosts.Verifier):
             )
 
     def _is_applicable(self, host):
+        if host.is_containerized_servod():
+            logging.info('Servod is running within a container.')
+            return True
         # Run only for servos under labstations.
         if not host.is_labstation():
+            logging.info('Not supported for servo_v3.')
             return False
         # Only run if the host is in the physical lab.
-        if not host.is_in_lab() or host.is_localhost():
-            return False
-        return True
+        return host.is_in_lab()
 
     @property
     def description(self):
@@ -423,12 +429,6 @@ class _ServodEchoVerifier(hosts.Verifier):
     def description(self):
         return 'Servod is running and responsive to dut-control run.'
 
-    def _is_applicable(self, host):
-        if host.is_containerized_servod():
-            logging.info('Servod is running within a container.')
-            return False
-        return True
-
 
 class _DiskSpaceVerifier(hosts.Verifier):
     """
@@ -523,8 +523,7 @@ class _Cr50ConsoleVerifier(hosts.Verifier):
     def _is_applicable(self, host):
         # Only when DUT is running through ccd.
         # TODO(coconutruben): replace with ccd API when available in servo.py
-        return (host.get_servo()
-                and host.get_servo().get_main_servo_device() == 'ccd_cr50')
+        return host.get_servo() and host.get_servo().main_device_is_ccd()
 
     @property
     def description(self):
@@ -545,8 +544,8 @@ class _CCDTestlabVerifier(hosts.Verifier):
     def verify(self, host):
         if not host.get_servo().has_control('cr50_testlab'):
             raise hosts.AutoservVerifyError(
-                'cr50 has to be supported when use servo with '
-                'ccd_cr50/type-c connection')
+                    'gsc has to be supported when use servo with '
+                    'ccd_*/type-c connection')
 
         status = host.get_servo().get('cr50_testlab')
         # check by 'on' to fail when get unexpected value
@@ -560,8 +559,7 @@ class _CCDTestlabVerifier(hosts.Verifier):
     def _is_applicable(self, host):
         # Only when DUT is running through ccd.
         # TODO(coconutruben): replace with ccd API when available in servo.py
-        return (host.get_servo()
-                and host.get_servo().get_main_servo_device() == 'ccd_cr50')
+        return host.get_servo() and host.get_servo().main_device_is_ccd()
 
     @property
     def description(self):
@@ -993,29 +991,100 @@ class _LidVerifier(hosts.Verifier):
         return 'lid_open control is normal'
 
 
-class _EcBoardVerifier(hosts.Verifier):
+class ECConsoleVerifier(hosts.Verifier):
     """
-    Verifier response from the 'ec_board' control.
+    Verifier response from the EC console.
     """
 
+    COMMAND_TO_CHECK_CONSOLE = (
+            'ec_system_powerstate',
+            'ec_board',
+    )
+
     @ignore_exception_for_non_cros_host
-    @timeout_util.TimeoutDecorator(cros_constants.SHORT_VERIFY_TIMEOUT_SEC)
+    @timeout_util.TimeoutDecorator(cros_constants.VERIFY_TIMEOUT_SEC)
     def verify(self, host):
-        if host.is_ec_supported():
-            ec_board_name = ''
-            try:
-                ec_board_name = host.get_servo().get_ec_board()
-                logging.debug('EC board: %s', ec_board_name)
-            except Exception as e:
-                raise hosts.AutoservNonCriticalVerifyError(
-                        '`ec_board` control is not responding; '
-                        'may be caused of broken EC firmware')
-        else:
-            logging.info('The board not support EC')
+        if not host.is_ec_supported():
+            logging.info('The board does not support EC')
+            return
+
+        for command in self.COMMAND_TO_CHECK_CONSOLE:
+            if host.get_servo().has_control(command):
+                try:
+                    # Response of command is not important.
+                    r = host.get_servo().get(command)
+                    logging.debug('Result %s:%s', command, r)
+                    # Exiting as we confirmed that console is working.
+                    return
+                except Exception as e:
+                    logging.error('Fail to read %s control. Error: %s',
+                                  command, e)
+        # If we reached this point then no command succeeded.
+        raise hosts.AutoservNonCriticalVerifyError(
+                'EC console is not responding; '
+                'may be caused of broken EC firmware')
 
     @property
     def description(self):
-        return 'Check EC by get `ec_board` control'
+        return 'Check EC console'
+
+
+class ServodDutControllerMissingVerifier(hosts.Verifier):
+    """Verifier to check whether the servod dut controller is missing or not.
+
+    When servod is initializing, it checks if DUT controller is
+    missing. If yes,then it sets 'dut_controller_missing_fault' to
+    'on', otherwise, to 'off'. Missing controller means servo
+    component connected to the DUT is missing, or is not responsive.
+    """
+
+    @timeout_util.TimeoutDecorator(cros_constants.VERIFY_TIMEOUT_SEC)
+    def verify(self, host):
+        logging.debug('ServodDutControllerMissingVerifier: Starting verifier.')
+        if host.get_servo().get('dut_controller_missing_fault') == 'on':
+            logging.debug(
+                    'ServodDutControllerMissingVerifier: DUT Controller missing fault is on.'
+            )
+            raise hosts.AutoservVerifyError('Servod is missing dut controller')
+        else:
+            logging.debug(
+                    'ServodDutControllerMissingVerifier: DUT Controller missing fault is not on.'
+            )
+
+    def _is_applicable(self, host):
+        if host.is_containerized_servod():
+            logging.debug(
+                    'ServodDutControllerMissingVerifier: Detected containerized servod.'
+            )
+            logging.info('Servod is running within a container')
+            return True
+        if not host.is_labstation():
+            logging.debug(
+                    'ServodDutControllerMissingVerifier: Detected non-labstation.'
+            )
+            logging.info('Not supported for servo_v3.')
+            return False
+        return host.is_in_lab()
+
+    @property
+    def description(self):
+        return 'ensure servod does not have missing dut controller'
+
+
+class _ConnectionVerifier(repair_utils.SshVerifier):
+    """
+    Ensure the servo host container is up.
+    """
+
+    def verify(self, host):
+        if host.is_containerized_servod():
+            # We need start servod container first before check it-is present
+            host.start_containerized_servod()
+        return super(_ConnectionVerifier, self).verify(host)
+
+    @property
+    def description(self):
+        return 'Check the connection to the machine or container running servod.'
 
 
 class _RestartServod(hosts.RepairAction):
@@ -1023,7 +1092,9 @@ class _RestartServod(hosts.RepairAction):
 
     @timeout_util.TimeoutDecorator(cros_constants.REPAIR_TIMEOUT_SEC)
     def repair(self, host):
-        if not host.is_cros_host():
+        if host.is_containerized_servod():
+            pass
+        elif not host.is_cros_host():
             raise hosts.AutoservRepairError(
                     'Can\'t restart servod: not running '
                     'embedded Chrome OS.',
@@ -1033,12 +1104,6 @@ class _RestartServod(hosts.RepairAction):
     @property
     def description(self):
         return 'Start servod with the proper config settings.'
-
-    def _is_applicable(self, host):
-        if host.is_containerized_servod():
-            logging.info('Servod is running within a container.')
-            return False
-        return True
 
 
 class _ServoRebootRepair(repair_utils.RebootRepair):
@@ -1088,7 +1153,10 @@ class _ToggleCCLineRepair(hosts.RepairAction):
     @timeout_util.TimeoutDecorator(cros_constants.REPAIR_TIMEOUT_SEC)
     def repair(self, host):
         logging.info('Turn off configuration channel and wait 10 seconds.')
-        host.get_servo().set_nocheck('servo_v4_uart_cmd', 'cc off')
+        servo_uart_cmd = 'servo_v4_uart_cmd'
+        if not host.get_servo().has_control(servo_uart_cmd):
+            servo_uart_cmd = 'servo_v4p1_uart_cmd'
+        host.get_servo().set_nocheck(servo_uart_cmd, 'cc off')
         # wait till command will be effected
         time.sleep(self.CC_OFF_TIMEOUT)
 
@@ -1101,12 +1169,17 @@ class _ToggleCCLineRepair(hosts.RepairAction):
         host.restart_servod()
 
     def _is_applicable(self, host):
-        if host.is_localhost() or not host.is_labstation():
+        if host.is_localhost():
+            logging.debug('Not supported for localhost.')
             return False
         if not host.servo_serial:
+            logging.debug('Servod does not have serial.')
             return False
         if not host.servo_recovery:
             logging.debug('Servod is not running in recovery mode.')
+            return False
+        if not (host.is_labstation() or host.is_containerized_servod()):
+            logging.debug('Not supported for servo_v3.')
             return False
         if not host.get_servo():
             logging.debug('Servo is not initialized.')
@@ -1117,7 +1190,7 @@ class _ToggleCCLineRepair(hosts.RepairAction):
         if host.get_dut_host_info():
             servo_type = host.get_dut_host_info().get_label_value(
                     servo_constants.SERVO_TYPE_LABEL_PREFIX)
-            return 'ccd_cr50' in servo_type
+            return 'ccd' in servo_type
         return False
 
     @property
@@ -1142,18 +1215,26 @@ class _FakedisconnectRepair(hosts.RepairAction):
         disc_cmd = ('fakedisconnect %d %d' %
                     (self.DISC_DELAY_MS, self.DISC_TIMEOUT_MS))
         # cannot use 'set' as control is not returned executed commands
-        host.get_servo().set_nocheck('servo_v4_uart_cmd', disc_cmd)
+        servo_uart_cmd = 'servo_v4_uart_cmd'
+        if not host.get_servo().has_control(servo_uart_cmd):
+            servo_uart_cmd = 'servo_v4p1_uart_cmd'
+        host.get_servo().set_nocheck(servo_uart_cmd, disc_cmd)
         logging.debug('Waiting %ss for affect of action', self.EXEC_TIMEOUT)
         time.sleep(self.EXEC_TIMEOUT)
         host.restart_servod()
 
     def _is_applicable(self, host):
-        if host.is_localhost() or not host.is_labstation():
+        if host.is_localhost():
+            logging.debug('Not supported for localhost.')
             return False
         if not host.servo_serial:
+            logging.debug('Servod does not have serial.')
             return False
         if not host.servo_recovery:
             logging.debug('Servod is not running in recovery mode.')
+            return False
+        if not (host.is_labstation() or host.is_containerized_servod()):
+            logging.debug('Not supported for servo_v3.')
             return False
         if not host.get_servo():
             logging.debug('Servo is not initialized.')
@@ -1164,7 +1245,7 @@ class _FakedisconnectRepair(hosts.RepairAction):
         if host.get_dut_host_info():
             servo_type = host.get_dut_host_info().get_label_value(
                     servo_constants.SERVO_TYPE_LABEL_PREFIX)
-            return 'ccd_cr50' in servo_type
+            return 'ccd' in servo_type
         return False
 
     @property
@@ -1308,7 +1389,7 @@ class _ServoFwUpdateRepair(hosts.RepairAction):
 
     def _is_applicable(self, host):
         # Run only for servo_v4 and servo_v4p1.
-        return host.is_labstation()
+        return host.is_labstation() or host.is_containerized_servod()
 
     @property
     def description(self):
@@ -1374,17 +1455,17 @@ def _servo_verifier_actions():
     Return a verifiers for a `ServoHost`.
     """
     return (
-            (repair_utils.SshVerifier, 'servo_ssh', []),
-            (_RootServoPresentVerifier, 'servo_root_present', ['servo_ssh']),
+            (_ConnectionVerifier, 'connection', []),
+            (_RootServoPresentVerifier, 'servo_root_present', ['connection']),
             (_RootServoV3PresentVerifier, 'servo_v3_root_present',
-             ['servo_ssh']),
+             ['connection']),
             (_ServoFwVerifier, 'servo_fw', ['servo_root_present']),
             (_StartServodVerifier, 'start_servod',
              ['servo_fw', 'servo_v3_root_present']),
-            (_DiskSpaceVerifier, 'servo_disk_space', ['servo_ssh']),
+            (_DiskSpaceVerifier, 'servo_disk_space', ['connection']),
             (_UpdateVerifier, 'servo_update', ['servo_v3_root_present']),
-            (_BoardConfigVerifier, 'servo_config_board', ['servo_ssh']),
-            (_SerialConfigVerifier, 'servo_config_serial', ['servo_ssh']),
+            (_BoardConfigVerifier, 'servo_config_board', ['connection']),
+            (_SerialConfigVerifier, 'servo_config_serial', ['connection']),
             (_ServodJobVerifier, 'servod_started', [
                     'start_servod', 'servo_config_board',
                     'servo_config_serial', 'servo_disk_space'
@@ -1393,6 +1474,8 @@ def _servo_verifier_actions():
             (_TopologyVerifier, 'servo_topology', ['servod_echo']),
             (_ServodConnectionVerifier, 'servod_connection', ['servod_echo']),
             (_Cr50LowSBUVerifier, 'servo_cr50_low_sbu', ['servod_connection']),
+            (ServodDutControllerMissingVerifier,
+             'servod_dut_controller_missing', ['servod_connection']),
             (_Cr50OffVerifier, 'servo_cr50_off', ['servod_connection']),
             (_ServodControlVerifier, 'servod_control', ['servod_connection']),
             (_DUTConnectionVerifier, 'servo_dut_connected',
@@ -1403,7 +1486,7 @@ def _servo_verifier_actions():
                                                         ]),
             (_BatteryVerifier, 'servo_battery', ['servo_hub_connected']),
             (_LidVerifier, 'servo_lid_open', ['servo_hub_connected']),
-            (_EcBoardVerifier, 'servo_ec_board', ['servo_dut_connected']),
+            (ECConsoleVerifier, 'servo_ec_console', ['servo_dut_connected']),
             (_Cr50ConsoleVerifier, 'servo_cr50_console',
              ['servo_dut_connected']),
             (_CCDTestlabVerifier, 'servo_ccd_testlab', ['servo_cr50_console']),
@@ -1421,28 +1504,29 @@ def _servo_repair_actions():
             'servod_started', 'servo_topology', 'servod_connection',
             'servod_echo', 'servod_control', 'servo_dut_connected',
             'servo_hub_connected', 'servo_pwr_button', 'servo_cr50_console',
-            'servo_cr50_low_sbu', 'servo_cr50_off', 'servo_power_delivery'
+            'servo_cr50_low_sbu', 'servo_cr50_off', 'servo_power_delivery',
+            'servod_dut_controller_missing'
     ]
     dut_triggers = [
-            'servod_control', 'servo_lid_open', 'servo_ec_board',
+            'servod_control', 'servo_lid_open', 'servo_ec_console',
             'servo_topology', 'servo_dut_connected', 'servo_hub_connected',
             'servo_cr50_low_sbu', 'servo_cr50_off', 'servo_cr50_console',
-            'servo_power_delivery'
+            'servo_power_delivery', 'servod_dut_controller_missing'
     ]
     reboot_triggers = [
             'servo_topology', 'servo_root_present', 'servo_disk_space',
             'servo_power_delivery'
     ]
     return (
-            (_ServoFwUpdateRepair, 'servo_fw_update', ['servo_ssh'],
+            (_ServoFwUpdateRepair, 'servo_fw_update', ['connection'],
              ['servo_fw']),
-            (_DiskCleanupRepair, 'servo_disk_cleanup', ['servo_ssh'],
+            (_DiskCleanupRepair, 'servo_disk_cleanup', ['connection'],
              ['servo_disk_space']),
             (_ServoMicroFlashRepair, 'servo_micro_flash',
-             ['servo_ssh', 'servo_topology'], ['servo_dut_connected']),
-            (_RestartServod, 'servod_restart', ['servo_ssh', 'servo_fw'],
+             ['connection', 'servo_topology'], ['servo_dut_connected']),
+            (_RestartServod, 'servod_restart', ['connection', 'servo_fw'],
              config + base_triggers),
-            (_ServoRebootRepair, 'servo_reboot', ['servo_ssh'],
+            (_ServoRebootRepair, 'servo_reboot', ['connection'],
              reboot_triggers),
             (_PowerDeliveryRepair, 'servo_pd_recover', ['servod_connection'],
              base_triggers),

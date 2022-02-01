@@ -20,9 +20,17 @@ import re
 import tarfile
 import threading
 import json
+import tempfile
 import time
 import six
 import six.moves.xmlrpc_client
+import socket
+
+try:
+    import docker
+    from autotest_lib.site_utils.docker import utils as docker_utils
+except ImportError:
+    logging.info("Docker API is not installed in this environment")
 
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error
@@ -44,6 +52,14 @@ except ImportError:
     metrics = utils.metrics_mock
 
 _CONFIG = global_config.global_config
+
+SERVOD_CONTAINER_IMAGE_PATH = "us-docker.pkg.dev/chromeos-partner-moblab/common-core"
+
+# Create the flag on drone or inside the ssp container to enable servod debug mode.
+# The servod container will not be deleted after being stopped.
+SERVOD_DEBUG_FLAG = '/servod_debug'
+
+DOCKER_SERVOD_DEBUG_MODE = os.environ.get('DOCKER_SERVOD_DEBUG_MODE', '0')
 
 
 class ServoHost(base_servohost.BaseServoHost):
@@ -107,17 +123,18 @@ class ServoHost(base_servohost.BaseServoHost):
     #  <output>
     #
     # The log format starts with a timestamp
-    MCU_RE = (r'[\d\-]+ [\d:,]+ '
-              # The mcu that is logging this is next.
-              r'- (?P<%s>\w+) - '
-              # Next, we have more log outputs before the actual line.
-              # Information about the file line, logging function etc.
-              # Anchor on EC3PO Console, LogConsoleOutput and dev/pts.
-              # NOTE: if the log format changes, this regex needs to be
-              # adjusted.
-              r'EC3PO\.Console[\s\-\w\d:.]+LogConsoleOutput - /dev/pts/\d+ - '
-              # Lastly, we get the MCU's console line.
-              r'(?P<%s>.+$)' % (MCU_GROUP, LINE_GROUP))
+    MCU_RE = (
+            r'[\d\-]+ [\d:,]+ '
+            # The mcu that is logging this is next.
+            r'- (?P<%s>[\w/]+) - '
+            # Next, we have more log outputs before the actual line.
+            # Information about the file line, logging function etc.
+            # Anchor on EC3PO Console, LogConsoleOutput and dev/pts.
+            # NOTE: if the log format changes, this regex needs to be
+            # adjusted.
+            r'EC3PO\.Console[\s\-\w\d:.]+LogConsoleOutput - /dev/pts/\d+ - '
+            # Lastly, we get the MCU's console line.
+            r'(?P<%s>.+$)' % (MCU_GROUP, LINE_GROUP))
     MCU_EXTRACTOR = re.compile(MCU_RE)
 
     # Regex to detect timeout messages when USBC pigtail has timeout issue.
@@ -137,6 +154,7 @@ class ServoHost(base_servohost.BaseServoHost):
         self._servo_state = None
         self.servo_port = None
         self.servo_board = None
+        self._ec_supported = None
         self.servo_model = None
         self.servo_serial = None
         self.servo_setup = None
@@ -219,8 +237,9 @@ class ServoHost(base_servohost.BaseServoHost):
         # make sure the labstation is up here, in the case of the labstation is
         # in the middle of reboot.
         self._is_locked = False
-        if (self.wait_up(self.REBOOT_TIMEOUT) and self.is_in_lab()
-            and self.is_labstation()):
+        if (not self.is_containerized_servod()
+                    and self.wait_up(self.REBOOT_TIMEOUT) and self.is_in_lab()
+                    and self.is_labstation()):
             self._lock()
             try:
                 self.wait_ready()
@@ -307,7 +326,8 @@ class ServoHost(base_servohost.BaseServoHost):
                   server on the host.
         """
         if (servo_constants.ENABLE_SSH_TUNNEL_FOR_SERVO
-                and not self.is_localhost()):
+                    and not self.is_localhost()
+                    and not self.is_containerized_servod()):
             # Check for existing ssh tunnel proxy.
             if self._tunnel_proxy is None:
                 self._maybe_create_servod_ssh_tunnel_proxy()
@@ -521,12 +541,18 @@ class ServoHost(base_servohost.BaseServoHost):
     def is_ec_supported(self):
         """Check if ec is supported on the servo_board"""
         if self.servo_board:
+            if self._ec_supported is not None:
+                return self._ec_supported
             try:
                 frm_config = config.Config(self.servo_board, self.servo_model)
-                return frm_config.chrome_ec
+                self._ec_supported = getattr(frm_config, 'chrome_ec', False)
+                return self._ec_supported
             except Exception as e:
-                logging.error('Unexpected error when read from firmware'
-                    ' configs; %s', str(e))
+                logging.error(
+                        'Unexpected error when read from firmware'
+                        ' configs; %s', e)
+        else:
+            logging.debug('Cannot detect if DUT has EC as board unknown.')
         return False
 
     def validate_image_usbkey(self):
@@ -628,6 +654,9 @@ class ServoHost(base_servohost.BaseServoHost):
             logging.debug("Servohost is a localhost, skipping start servod.")
             return
 
+        if self.is_containerized_servod():
+            return self.start_containerized_servod()
+
         cmd = 'start servod'
         if self.servo_board:
             cmd += ' BOARD=%s' % self.servo_board
@@ -689,12 +718,139 @@ class ServoHost(base_servohost.BaseServoHost):
             logging.debug("Servohost is a localhost, skipping stop servod.")
             return
 
+        if self.is_containerized_servod():
+            # TODO(gregorynisbet): Remove this message in 2022Q2.
+            logging.debug("ServoHost: Detected containerized servod.")
+            remove_container = True
+            if DOCKER_SERVOD_DEBUG_MODE == '1' or os.path.exists(
+                    SERVOD_DEBUG_FLAG):
+                remove_container = False
+            self.stop_containerized_servod(remove_container=remove_container)
+            return
+
         logging.debug('Stopping servod on port %s', self.servo_port)
         self.run('stop servod PORT=%d' % self.servo_port,
                  timeout=60, ignore_status=True)
         logging.debug('Wait %s seconds for servod process fully teardown.',
                       servo_constants.SERVOD_TEARDOWN_TIMEOUT)
         time.sleep(servo_constants.SERVOD_TEARDOWN_TIMEOUT)
+
+    def wait_for_init_servod_in_container(self, container):
+        """Waits for servod process to be ready to listen inside container."""
+        ready_output = "Instance associated with id 9999 ready"
+        if not container:
+            logging.debug("Container object is None.")
+            return False
+        try:
+            # Executes servodtool command to wait for servod to be active.
+            exit_code, output = container.exec_run(
+                    cmd="servodtool instance wait-for-active -p 9999",
+                    stdout=True)
+            if exit_code != 0 or ready_output not in output:
+                logging.debug(
+                        'Failed to start servod process inside container,'
+                        'exit_code=%s, output=%s.', exit_code, output)
+                return False
+        except docker.errors.APIError as e:
+            logging.error('%s', e)
+        return True
+
+    def start_containerized_servod(self, with_servod=True):
+        """Start the servod process on servohost."""
+        logging.info("Starting servod container %s.", self.hostname)
+        client = docker_utils.get_docker_client()
+        try:
+            if self.is_up():
+                logging.warning("Container already exists - not starting")
+                return
+            self.stop_containerized_servod()
+        except docker.errors.NotFound:
+            logging.info("Servod container %s not found", self.hostname)
+            pass
+        except docker.errors.APIError:
+            # Container exists but is not running
+            logging.info("Cleanup of non functional container.")
+            self.stop_containerized_servod()
+
+        label = os.environ.get("SERVOD_CONTAINER_LABEL", "release")
+        registry = os.environ.get("REGISTRY_URI", SERVOD_CONTAINER_IMAGE_PATH)
+        image = "%s/servod:%s" % (registry, label)
+        logging.info("Servod container image: %s", image)
+
+        try:
+            client.images.pull(image)
+        except docker.errors.APIError:
+            logging.exception("Failed to pull servod container image.")
+
+        environment = [
+                "BOARD=%s" % self.servo_board,
+                "MODEL=%s" % self.servo_model,
+                "SERIAL=%s" % self.servo_serial,
+                "PORT=%s" % self.servo_port,
+        ]
+
+        # Start servod with dual_v4 based on servo_setup.
+        if self.is_dual_setup():
+            environment.append("DUAL_V4=1")
+        # Start servod with CONFIG=cr50.xml which required for some pools.
+        if self._require_cr50_servod_config():
+            environment.append("CONFIG=cr50.xml")
+        if self.servo_recovery == True:
+            environment.append("REC_MODE=1")
+
+        container_network = "default_moblab"
+        if 'drone' in docker_utils.get_running_containers(client=client):
+            container_network = "default_satlab"
+        logging.info('Servod container environment: %s', environment)
+        try:
+            start_cmds = ["bash", "/start_servod.sh"]
+            if not with_servod:
+                # In some cases we do not need container without running servod.
+                start_cmds = ["tail", "-f", "/dev/null"]
+            container = client.containers.run(
+                    image,
+                    remove=False,
+                    privileged=True,
+                    name=self.hostname,
+                    hostname=self.hostname,
+                    network=container_network,
+                    cap_add=["NET_ADMIN"],
+                    detach=True,
+                    volumes=[
+                            "/dev:/dev",
+                            "%s_log:/var/log/servod_%s/" %
+                            (self.hostname, self.servo_port)
+                    ],
+                    environment=environment,
+                    command=start_cmds,
+            )
+            # Wait for 60 sec, probing servod ready state fails.
+            if not self.wait_for_init_servod_in_container(container):
+                time.sleep(servo_constants.SERVOD_STARTUP_TIMEOUT)
+            logging.info("Servod container %s up and running.", self.hostname)
+        except docker.errors.ContainerError as e:
+            logging.exception("Failed to start servod container. %s", e)
+            raise
+        except docker.errors.ImageNotFound:
+            logging.exception("Servod container image %s not found.", image)
+
+    def stop_containerized_servod(self, remove_container=True):
+        """Stop the container running servod."""
+        logging.info("Stopping servod container %s.", self.hostname)
+        client = docker_utils.get_docker_client()
+        try:
+            cont = client.containers.get(self.hostname)
+        except docker.errors.NotFound:
+            logging.info("Servod container %s not found no need to stop it.",
+                         self.hostname)
+        except docker.errors.APIError:
+            logging.exception(
+                    "Stopping servod container %s caused a docker error.",
+                    self.hostname)
+        else:
+            if remove_container == True:
+                cont.remove(force=True)
+                logging.debug('Servod container instance removed')
 
     def restart_servod(self, quick_startup=False):
         """Restart the servod process on servohost.
@@ -904,6 +1060,9 @@ class ServoHost(base_servohost.BaseServoHost):
                 match = self.MCU_EXTRACTOR.match(line)
                 if match:
                     mcu = match.group(self.MCU_GROUP).lower()
+                    # The |mcu| might contain a '/' in it. Replace it with '.'
+                    # to avoid generating bad filepaths.
+                    mcu = mcu.replace('/', '.')
                     line = match.group(self.LINE_GROUP)
                     if mcu not in mcu_files:
                         mcu_file = os.path.join(log_subdir,
@@ -1061,10 +1220,12 @@ class ServoHost(base_servohost.BaseServoHost):
         crashcollect.collect_command(self, 'dmesg -H',
                                      os.path.join(log_dir, 'dmesg'))
         # Collect messages log from the servohost.
-        try:
-            self.get_file('/var/log/messages', log_dir, try_rsync=False)
-        except error.AutoservRunError as e:
-            logging.warning('Failed to collect messages log from servohost.')
+        if not self.is_containerized_servod():
+            try:
+                self.get_file('/var/log/messages', log_dir, try_rsync=False)
+            except error.AutoservRunError as e:
+                logging.warning(
+                        'Failed to collect messages log from servohost.')
 
     def get_instance_logs(self, instance_ts, outdir, old=False):
         """Collect all logs with |instance_ts| and dump into a dir in |outdir|
@@ -1097,7 +1258,20 @@ class ServoHost(base_servohost.BaseServoHost):
         res = self.run(cmd, stderr_tee=None, ignore_status=True)
         files = res.stdout.strip().split()
         try:
-            self.get_file(files, log_dir, try_rsync=False)
+            if self.is_containerized_servod():
+                client = docker_utils.get_docker_client()
+                container = client.containers.get(self.hostname)
+                file_stream, stat = container.get_archive(files)
+                tf = tempfile.NamedTemporaryFile(delete=False)
+                for block in file_stream:
+                    tf.write(block)
+                tf.close()
+                pw_tar = tarfile.TarFile(tf.name)
+                pw_tar.extractall(log_dir)
+                os.remove(tf.name)
+            else:
+                self.get_file(files, log_dir, try_rsync=False)
+
             if not os.listdir(log_dir):
                 logging.info('No servod logs retrieved. Ignoring, and removing '
                              '%r again.', log_dir)
@@ -1315,13 +1489,15 @@ class ServoHost(base_servohost.BaseServoHost):
         The state detecting based on first fail verifier or collecting of
         them.
         """
-        ssh = self.get_verifier_state('servo_ssh')
+        ssh = self.get_verifier_state('connection')
         servo_root_present = self.get_verifier_state('servo_root_present')
         servo_root_present_node = self.get_repair_strategy_node(
                 'servo_root_present')
         servo_v3_present = self.get_verifier_state('servo_v3_root_present')
         servo_fw = self.get_verifier_state('servo_fw')
         servo_fw_update = self.get_repair_strategy_node('servo_fw_update')
+        servod_dut_controller_missing = self.get_repair_strategy_node(
+                'servod_dut_controller_missing')
         disk_space = self.get_verifier_state('servo_disk_space')
         start_servod = self.get_verifier_state('start_servod')
         servod_started = self.get_verifier_state('servod_started')
@@ -1335,7 +1511,7 @@ class ServoHost(base_servohost.BaseServoHost):
         hub_connected = self.get_verifier_state('servo_hub_connected')
         pwr_button = self.get_verifier_state('servo_pwr_button')
         lid_open = self.get_verifier_state('servo_lid_open')
-        ec_board = self.get_verifier_state('servo_ec_board')
+        ec_board = self.get_verifier_state('servo_ec_console')
         cr50_console = self.get_verifier_state('servo_cr50_console')
         ccd_testlab = self.get_verifier_state('servo_ccd_testlab')
 
@@ -1369,6 +1545,8 @@ class ServoHost(base_servohost.BaseServoHost):
         if cr50_off == hosts.VERIFY_FAILED:
             return servo_constants.SERVO_STATE_CR50_NOT_ENUMERATED
 
+        if servod_dut_controller_missing == hosts.VERIFY_FAILED:
+            return servo_constants.SERVO_STATE_SERVOD_DUT_CONTROLLER_MISSING
         if servo_topology == hosts.VERIFY_FAILED:
             return servo_constants.SERVO_STATE_TOPOLOGY_ISSUE
 
@@ -1408,16 +1586,19 @@ class ServoHost(base_servohost.BaseServoHost):
 
     def is_servo_topology_supported(self):
         """Check if servo_topology is supported."""
+        if self.is_containerized_servod():
+            logging.info('Servod is running within a container.')
+            return True
         if not self.is_up_fast():
             logging.info('Servo-Host is not reachable.')
-            return False
-        if not self.is_labstation():
-            logging.info('Servo-topology supported only for labstation.')
             return False
         if not self.servo_serial:
             logging.info('Servo-topology required a servo serial.')
             return False
-        return True
+        if self.is_labstation():
+            logging.info('Servod is running within labstation.')
+            return True
+        return False
 
     def get_topology(self):
         """Get servo topology."""
@@ -1682,7 +1863,14 @@ def create_servo_host(dut,
             logging.error('Failed to initialize servo. %s', e)
             return None, servo_constants.SERVO_STATE_BROKEN
 
-    if newhost.use_icmp and not newhost.is_up_fast(count=3):
+    if newhost.is_containerized_servod():
+        # TODO(otabek@): Update for servod-manager.
+        # Servod docker is not available for access.
+        newhost.start_containerized_servod()
+    # use_icmp is always set to true in autotest, but in labpack
+    # this is determined by autoserv args. We need to make this consistent
+    # across labpack and autotest b/205855910
+    elif newhost.use_icmp and not newhost.is_up_fast(count=3):
         # ServoHost has internal check to wait if servo-host is in reboot
         # process. If servo-host still is not available this check will stop
         # further attempts as we do not have any option to recover servo_host.
@@ -1708,7 +1896,7 @@ def create_servo_host(dut,
         newhost.set_dut_hostname(dut.hostname)
     if dut_host_info:
         newhost.set_dut_host_info(dut_host_info)
-    if dut_health_profile and (try_lab_servo or try_servo_repair):
+    if (dut_health_profile and (try_lab_servo or try_servo_repair)):
         try:
             if newhost.is_localhost():
                 logging.info('Servohost is a localhost, skip device'
