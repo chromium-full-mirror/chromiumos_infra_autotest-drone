@@ -55,11 +55,6 @@ _FAIL_STATUS_RE = re.compile(
 LOG_BUFFER_SIZE_BYTES = 64
 
 
-def _set_py_version():
-    """Return the py_version flag obtained from the set environmental var."""
-    return '--py_version=%s' % int(os.getenv('PY_VERSION'))
-
-
 class AutodirNotFoundError(Exception):
     """No Autotest installation could be found."""
 
@@ -751,12 +746,18 @@ class _Run(object):
         args.append(self.remote_control_file)
         return args
 
+    def _set_py_version(self):
+        """Set the --py_version flag if the R# will support Python 3."""
+        v = 3
+        if int(self.host.get_chromeos_release_milestone()) < 100:
+            v = 2
+        return '--py_version=%s' % v
 
     def get_background_cmd(self, section):
         cmd = [
                 'nohup',
                 os.path.join(self.autodir, 'bin/autotest_client'),
-                _set_py_version()
+                self._set_py_version()
         ]
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
@@ -768,7 +769,7 @@ class _Run(object):
                 'nohup',
                 os.path.join(self.autodir, 'bin/autotestd'), monitor_dir,
                 '-H autoserv',
-                _set_py_version()
+                self._set_py_version()
         ]
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
@@ -781,7 +782,7 @@ class _Run(object):
                 monitor_dir,
                 str(stdout_read),
                 str(stderr_read),
-                _set_py_version()
+                self._set_py_version()
         ]
         return ' '.join(cmd)
 
