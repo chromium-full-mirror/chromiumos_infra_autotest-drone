@@ -19,18 +19,18 @@ import six
 # TODO b:169251326 terms below are set outside of this codebase
 # and should be updated when possible. ("master" -> "main")
 _MAIN_SSH_COMMAND_TEMPLATE = (
-    '/usr/bin/ssh -a -x -N '
-    '-o ControlMaster=yes '  # Create multiplex socket.
-    '-o ControlPath=%(socket)s '
-    '-o StrictHostKeyChecking=no '
-    '-o UserKnownHostsFile=/dev/null '
-    '-o BatchMode=yes '
-    '-o ConnectTimeout=30 '
-    '-o ServerAliveInterval=30 '
-    '-o ServerAliveCountMax=1 '
-    '-o ConnectionAttempts=1 '
-    '-o Protocol=2 '
-    '-l %(user)s -p %(port)d %(hostname)s')
+        '/usr/bin/ssh -a -x -N '
+        '-o ControlMaster=yes '  # Create multiplex socket.
+        '-o ControlPath=%(socket)s '
+        '-o StrictHostKeyChecking=no '
+        '-o UserKnownHostsFile=/dev/null '
+        '-o BatchMode=yes '
+        '-o ConnectTimeout=30 '
+        '-o ServerAliveInterval=30 '
+        '-o ServerAliveCountMax=1 '
+        '-o ConnectionAttempts=1 '
+        '-o Protocol=2 '
+        '-l %(user)s %(port)s %(hostname)s')
 
 
 class MainSsh(object):
@@ -94,10 +94,10 @@ class MainSsh(object):
 
                 # Start the main SSH connection in the background.
                 main_cmd = _MAIN_SSH_COMMAND_TEMPLATE % {
-                    'hostname': self._hostname,
-                    'user': self._user,
-                    'port': self._port,
-                    'socket': self._socket_path,
+                        'hostname': self._hostname,
+                        'user': self._user,
+                        'port': "-p %s" % self._port if self._port else "",
+                        'socket': self._socket_path,
                 }
                 logging.info(
                     'Starting main-ssh connection \'%s\'', main_cmd)
@@ -158,8 +158,8 @@ class ConnectionPool(object):
         @param port: Port number sshd is listening.
         """
         key = (hostname, user, port)
-        logging.debug('Get main ssh connection for %s@%s:%d', user, hostname,
-                      port)
+        logging.debug('Get main ssh connection for %s@%s%s', user, hostname,
+                      ":%s" % port if port else "")
 
         with self._lock:
             conn = self._pool.get(key)
