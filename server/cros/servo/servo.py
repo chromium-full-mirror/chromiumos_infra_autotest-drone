@@ -569,7 +569,7 @@ class Servo(object):
     # This was increased from 60 seconds to support boards with very
     # large (>500MB) firmware archives taking longer than expected to
     # extract firmware on the lab host machines (b/149419503).
-    EXTRACT_TIMEOUT_SECS = 300
+    EXTRACT_TIMEOUT_SECS = 400
 
     # The VBUS voltage threshold used to detect if VBUS is supplied
     VBUS_THRESHOLD = 3000.0
