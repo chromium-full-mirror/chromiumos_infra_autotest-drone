@@ -1486,22 +1486,19 @@ class Servo(object):
             logging.warn('Not a Chrome EC, ignore re-programming it')
             return None
 
-        # Try to retrieve firmware build target from the version reported
-        # by the EC. If this doesn't work, we assume the firmware build
-        # target is the same as the model name.
-        try:
-            fw_target = self.get_ec_board()
-        except Exception as err:
-            logging.warn('Failed to get ec_board value; ignoring')
-            fw_target = model
-            pass
+        # Most boards use the model name as the ec directory.
+        ec_image_candidates = ['%s/ec.bin' % model]
 
-        # Array of candidates for EC image
-        ec_image_candidates = [
-                'ec.bin',
-                '%s/ec.bin' % fw_target,
-                '%s/ec.bin' % board
-        ]
+        # If that isn't found try the name from the EC RO version.
+        try:
+            fw_target = self.get_ec_board().lower()
+            ec_image_candidates.append('%s/ec.bin' % fw_target)
+        except Exception as err:
+            logging.warning('Failed to get ec_board value; ignoring')
+
+        # Fallback to the name of the board, and then a bare ec.bin.
+        ec_image_candidates.append('%s/ec.bin' % board)
+        ec_image_candidates.append('ec.bin')
 
         # Extract EC image from tarball
         dest_dir = os.path.join(os.path.dirname(tarball_path), 'EC')
@@ -1542,7 +1539,7 @@ class Servo(object):
 
         # If that isn't found try the name from the EC RO version.
         try:
-            fw_target = self.get_ec_board()
+            fw_target = self.get_ec_board().lower()
             bios_image_candidates.append('image-%s.bin' % fw_target)
         except Exception as err:
             logging.warning('Failed to get ec_board value; ignoring')
