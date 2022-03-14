@@ -2,6 +2,18 @@ import datetime
 import os
 import re
 import logging
+import sys
+
+root = logging.getLogger()
+root.setLevel(logging.DEBUG)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+        '[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
+        '%m-%d %H:%M:%S')
+handler.setFormatter(formatter)
+root.addHandler(handler)
 
 
 def dprint(msg):
