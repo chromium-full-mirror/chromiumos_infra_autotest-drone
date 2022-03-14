@@ -254,7 +254,8 @@ def _extract_image_from_tarball(tarball, dest_dir, image_candidates, timeout):
     # Generate a list of all tarball files
     stdout = server_utils.system_output('tar tf %s' % tarball,
                                         timeout=timeout,
-                                        ignore_status=True)
+                                        ignore_status=True,
+                                        args=image_candidates)
     tarball_files = stdout.splitlines()
 
     # Check if image candidates are in the list of tarball files
@@ -569,7 +570,7 @@ class Servo(object):
     # This was increased from 60 seconds to support boards with very
     # large (>500MB) firmware archives taking longer than expected to
     # extract firmware on the lab host machines (b/149419503).
-    EXTRACT_TIMEOUT_SECS = 400
+    EXTRACT_TIMEOUT_SECS = 900
 
     # The VBUS voltage threshold used to detect if VBUS is supplied
     VBUS_THRESHOLD = 3000.0
