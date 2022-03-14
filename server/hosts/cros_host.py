@@ -105,6 +105,7 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
     INSTALL_TIMEOUT = 480
     ADMIN_INSTALL_TIMEOUT = 600
     POWERWASH_BOOT_TIMEOUT = 60
+    DEVSERVER_DOWNLOAD_TIMEOUT = 600
 
     # Minimum OS version that supports server side packaging. Older builds may
     # not have server side package built or with Autotest code change to support
@@ -899,7 +900,12 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                 # Download firmware image
                 fwurl = self._FW_IMAGE_URL_PATTERN % (ds.url(), build)
                 local_tarball = os.path.join(dest, os.path.basename(fwurl))
-                ds.download_file(fwurl, local_tarball)
+                logging.info('Downloading file from %s to %s.', fwurl,
+                             local_tarball)
+                ds.download_file(fwurl,
+                                 local_tarball,
+                                 timeout=self.DEVSERVER_DOWNLOAD_TIMEOUT)
+                logging.info('Done downloading')
             except Exception as e:
                 raise error.TestError('Failed to download firmware package: %s'
                                       % str(e))
