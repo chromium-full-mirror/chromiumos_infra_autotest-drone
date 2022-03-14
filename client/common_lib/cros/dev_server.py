@@ -13,6 +13,9 @@ import logging
 import multiprocessing
 import os
 import re
+import shutil
+import subprocess
+from threading import Timer
 import six
 from six.moves import urllib
 import six.moves.html_parser
@@ -602,6 +605,23 @@ class DevServer(object):
 
 
     @classmethod
+    def run_request(cls, call, timeout=None):
+        """Invoke a given devserver call using urllib.open.
+
+        Open the URL with HTTP, and return the text of the response. Exceptions
+        may be raised as for urllib2.urlopen().
+
+        @param call: a url string that calls a method to a devserver.
+        @param timeout: The timeout seconds for this urlopen call.
+
+        @return A HTTPResponse object.
+        """
+        if timeout is None:
+            return urllib.request.urlopen(call)
+        else:
+            return utils.urlopen_socket_timeout(call, timeout=timeout)
+
+    @classmethod
     def run_call(cls, call, readline=False, timeout=None):
         """Invoke a given devserver call using urllib.open.
 
@@ -614,14 +634,11 @@ class DevServer(object):
 
         @return the results of this call.
         """
-        if timeout is not None:
-            return utils.urlopen_socket_timeout(
-                    call, timeout=timeout).read()
-        elif readline:
-            response = urllib.request.urlopen(call)
+        response = cls.run_request(call, timeout=timeout)
+        if readline:
             return [line.rstrip() for line in response]
         else:
-            return urllib.request.urlopen(call).read()
+            return response.read()
 
 
     @staticmethod
@@ -1051,9 +1068,57 @@ class ImageServerBase(DevServer):
         @param local_file: The path of the file saved to local.
         @param timeout: The timeout seconds for this call.
         """
-        response = cls.run_call(remote_file, timeout=timeout)
-        with open(local_file, 'w') as out_log:
-            out_log.write(response)
+        server_name = get_hostname(remote_file)
+        is_in_restricted_subnet = utils.get_restricted_subnet(
+                server_name, utils.get_all_restricted_subnets())
+
+        if (not ENABLE_SSH_CONNECTION_FOR_DEVSERVER
+                    or not is_in_restricted_subnet):
+            response = super(ImageServerBase, cls).run_request(remote_file,
+                                                               timeout=timeout)
+            with open(local_file, 'wb') as out_log:
+                shutil.copyfileobj(response, out_log)
+        else:
+            timeout_seconds = timeout if timeout else DEVSERVER_SSH_TIMEOUT_MINS * 60
+            # SSH to the dev server and attach the local file as stdout.
+            with open(local_file, 'wb') as out_log:
+                ssh_cmd = [
+                        'ssh', server_name,
+                        'curl -s -S -f "%s"' % utils.sh_escape(remote_file)
+                ]
+                logging.debug("Running command %s", ssh_cmd)
+                with open(os.devnull) as devnull:
+                    cmd = subprocess.Popen(
+                            ssh_cmd,
+                            stdout=out_log,
+                            stdin=devnull,
+                            stderr=subprocess.PIPE,
+                    )
+
+                    # Python 2.7 doesn't have Popen.wait(timeout), so start a
+                    # timer and kill the ssh process if it takes too long.
+                    def stop_process():
+                        """Kills the subprocess after the timeout."""
+                        cmd.kill()
+                        logging.error("ssh call timed out after %s secs",
+                                      timeout_seconds)
+
+                    t = Timer(timeout_seconds, stop_process)
+                    try:
+                        t.start()
+                        cmd.wait()
+                    finally:
+                        t.cancel()
+                    error_output = cmd.stderr.read()
+                    if error_output:
+                        logging.error("ssh call output: %s", error_output)
+                    if cmd.returncode != 0:
+                        c = metrics.Counter(
+                                'chromeos/autotest/devserver/ssh_failure')
+                        c.increment(fields={'dev_server': server_name})
+                        raise DevServerException(
+                                "ssh call failed with exit code %s",
+                                cmd.returncode)
 
 
     def _poll_is_staged(self, **kwargs):
