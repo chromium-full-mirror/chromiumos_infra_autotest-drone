@@ -6,6 +6,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from io import StringIO
+import json
 
 import logging
 import os
@@ -804,24 +806,34 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
             raise error.AutoservError('Cannot find the latest firmware')
 
     @staticmethod
-    def get_version_from_image(image, version_regex):
+    def get_version_from_image(host, bios_image, ec_image):
         """Get version string from binary image using regular expression.
 
-        @param image: Binary image to search
-        @param version_regex: Regular expression to search for
+        @param host: An instance of hosts.Host.
+        @param bios_image: Filename of AP BIOS image on the DUT/labstation.
+        @param ec_image: Filename of EC image on the DUT/labstation.
 
-        @return Version string
-
-        @raises TestFail if no version string is found in image
+        @return Tuple of bios version and ec version
         """
-        with open(image, 'rb') as f:
-            image_data = f.read()
-        match = re.findall(version_regex,
-                           image_data.decode('ISO-8859-1', errors='ignore'))
-        if match:
-            return match[0]
-        else:
-            raise error.TestFail('Failed to read version from %s.' % image)
+        if not host:
+            return None
+        cmd_args = ['futility', 'update', '--manifest']
+        if bios_image:
+            cmd_args.append('-i')
+            cmd_args.append(bios_image)
+        if ec_image:
+            cmd_args.append('-e')
+            cmd_args.append(ec_image)
+        cmd = ' '.join([utils.sh_quote_word(arg) for arg in cmd_args])
+        stdout = host.run(cmd).stdout
+        io = StringIO(stdout)
+        data = json.load(io)
+        return (
+                data.get('default', {}).get('host', {}).get('versions',
+                                                            {}).get('rw'),
+                data.get('default', {}).get('ec', {}).get('versions',
+                                                          {}).get('rw'),
+        )
 
 
     def firmware_install(self, build, rw_only=False, dest=None,
@@ -927,12 +939,17 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
 
         # Install firmware from local tarball
         try:
+            image_ec_version = None
+            image_bios_version = None
+
             # Check if copying to DUT is enabled and DUT is available
             if try_scp and self.is_up():
                 # DUT is available, make temp firmware directory to store images
                 logging.info('Making temp folder.')
                 dest_folder = '/tmp/firmware'
                 self.run('mkdir -p ' + dest_folder)
+                dest_bios_path = None
+                dest_ec_path = None
 
                 fw_cmd = self._FW_UPDATE_CMD % ('--wp=1' if rw_only else '')
 
@@ -973,14 +990,21 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                         logging.error("DUT network dropped during update"
                                       " (unexpected, since no EC image)")
                         raise
+                image_bios_version, image_ec_version = self.get_version_from_image(
+                        self, dest_bios_path, dest_ec_path)
             else:
                 # Host is not available, program firmware using servo
+                dest_bios_path = None
+                dest_ec_path = None
                 if ec_image:
-                    self.servo.program_ec(ec_image, rw_only)
+                    dest_ec_path = self.servo.program_ec(ec_image, rw_only)
                 if bios_image:
-                    self.servo.program_bios(bios_image, rw_only)
+                    dest_bios_path = self.servo.program_bios(
+                            bios_image, rw_only)
                 if utils.host_is_in_lab_zone(self.hostname):
                     self._add_fw_version_label(build, rw_only)
+                image_bios_version, image_ec_version = self.get_version_from_image(
+                        self._servo_host, dest_bios_path, dest_ec_path)
 
             # Reboot and wait for DUT after installing firmware
             logging.info('Rebooting DUT.')
@@ -993,11 +1017,10 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                 # Check programmed EC firmware when EC image was found
                 if ec_image:
                     logging.info('Checking EC firmware version.')
+                    if image_ec_version is None:
+                        raise error.TestFail(
+                                'Could not find EC version in %s' % ec_image)
                     dest_ec_version = self.get_ec_version()
-                    ec_version_prefix = dest_ec_version.split('_', 1)[0]
-                    ec_regex = self._EC_REGEX % ec_version_prefix
-                    image_ec_version = self.get_version_from_image(ec_image,
-                                                                   ec_regex)
                     if dest_ec_version != image_ec_version:
                         raise error.TestFail(
                             'Failed to update EC firmware, version %s '
@@ -1007,11 +1030,11 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                 if bios_image:
                     # Check programmed BIOS firmware against expected version
                     logging.info('Checking BIOS firmware version.')
+                    if image_bios_version is None:
+                        raise error.TestFail(
+                                'Could not find BIOS version in %s' %
+                                bios_image)
                     dest_bios_version = self.get_firmware_version()
-                    bios_version_prefix = dest_bios_version.split('.', 1)[0]
-                    bios_regex = self._BIOS_REGEX % bios_version_prefix
-                    image_bios_version = self.get_version_from_image(bios_image,
-                                                                     bios_regex)
                     if dest_bios_version != image_bios_version:
                         raise error.TestFail(
                             'Failed to update BIOS, version %s '

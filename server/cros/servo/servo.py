@@ -1439,7 +1439,7 @@ class Servo(object):
         @param copy_image: True indicates we need scp the image to servohost
                            while False means the image file is already on
                            servohost.
-
+        @return: a string, full path name of the copied file on the remote.
         """
         self._initialize_programmer()
         # We don't need scp if test runs locally.
@@ -1449,6 +1449,7 @@ class Servo(object):
             self._programmer_rw.program_bios(image)
         else:
             self._programmer.program_bios(image)
+        return image
 
 
     def program_ec(self, image, rw_only=False, copy_image=True):
@@ -1460,6 +1461,7 @@ class Servo(object):
         @param copy_image: True indicates we need scp the image to servohost
                            while False means the image file is already on
                            servohost.
+        @return: a string, full path name of the copied file on the remote.
         """
         self._initialize_programmer()
         # We don't need scp if test runs locally.
@@ -1469,6 +1471,7 @@ class Servo(object):
             self._programmer_rw.program_ec(image)
         else:
             self._programmer.program_ec(image)
+        return image
 
 
     def extract_ec_image(self, board, model, tarball_path):
