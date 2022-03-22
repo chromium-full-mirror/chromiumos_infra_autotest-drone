@@ -37,7 +37,7 @@ class check_python_version:
             try:
                 # We can't restart when running under mod_python.
                 from mod_python import apache
-            except ImportError:
+            except (ImportError, ModuleNotFoundError):
                 self.restart()
 
     def extract_version(self, path):
