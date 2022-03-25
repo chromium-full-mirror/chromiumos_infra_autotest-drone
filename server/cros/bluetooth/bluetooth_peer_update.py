@@ -281,7 +281,7 @@ def get_target_commit(hostname, host_build):
     hostname = hostname.rstrip('.cros')
     try:
         src = GS_PUBLIC + COMMITS_FILENAME
-        content = yaml.load(read_google_cloud_file(src))
+        content = yaml.safe_load(read_google_cloud_file(src))
         logging.info('content of %s: %s', src, content)
         commit = content.get('lab_next_commit')
         if (hostname in content.get('lab_next_hosts') and

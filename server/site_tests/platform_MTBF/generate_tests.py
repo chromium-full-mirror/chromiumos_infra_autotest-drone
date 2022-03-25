@@ -48,7 +48,7 @@ def _load_json_config(config_path):
 def _validate_config_schema(json_config):
     # Loading the schema file
     with open(SCHEMA_FILE, 'r') as schema_file:
-        schema = yaml.load(schema_file)
+        schema = yaml.safe_load(schema_file)
 
     validate(json_config, schema)
 

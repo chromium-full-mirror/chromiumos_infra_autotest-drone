@@ -54,7 +54,7 @@ class ParseKnownCTSFailures(object):
             try:
                 logging.info('Loading expected failure file: %s.', failure_file)
                 with open(failure_file) as wf:
-                    waivers_yaml.update(yaml.load(wf.read()))
+                    waivers_yaml.update(yaml.safe_load(wf.read()))
             except IOError as e:
                 logging.error('Error loading %s (%s).',
                               failure_file,
