@@ -1493,6 +1493,10 @@ class Servo(object):
         # Most boards use the model name as the ec directory.
         ec_image_candidates = ['%s/ec.bin' % model]
 
+        # TODO(b/226402941): Read existing ec image name using futility.
+        if model == "dragonair":
+            ec_image_candidates.append('dratini/ec.bin')
+
         # If that isn't found try the name from the EC RO version.
         try:
             fw_target = self.get_ec_board().lower()
@@ -1540,6 +1544,10 @@ class Servo(object):
         bios_image_candidates = [
                 'image-%s.bin' % model,
         ]
+
+        # TODO(b/226402941): Read existing bios image name using futility.
+        if model == "dragonair":
+            bios_image_candidates.append('image-dratini.bin')
 
         # If that isn't found try the name from the EC RO version.
         try:
