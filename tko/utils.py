@@ -85,8 +85,11 @@ def get_skylab_task_id(tag):
                 e.g. "1234-chromeos-test/chromeos1-row1-host1"
     @return: the afe_job_id as a string if regex matches, else return ''
     """
-    match = re.search('^swarming-([A-Fa-f0-9]+)/(.+)$', tag)
-    return match.group(1) if match else None
+    # CFT will not be passing a "/" with the jobname
+    match = re.search('^swarming-([A-Fa-f0-9]+)', tag)
+    found = match.group(1) if match else None
+    logging.debug("Skylab task ID match {}".format(found))
+    return found
 
 
 def is_skylab_task(tag):
