@@ -827,6 +827,8 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
             cmd_args.append(ec_image)
         cmd = ' '.join([utils.sh_quote_word(arg) for arg in cmd_args])
         stdout = host.run(cmd).stdout
+        if not isinstance(stdout, six.string_types):
+            stdout = stdout.decode('utf-8')
         io = StringIO(stdout)
         data = json.load(io)
         return (
