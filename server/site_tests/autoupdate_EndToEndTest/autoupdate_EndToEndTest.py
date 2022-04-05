@@ -7,7 +7,6 @@ import os
 
 from autotest_lib.client.common_lib.cros import kernel_utils
 from autotest_lib.client.cros import constants
-from autotest_lib.server import afe_utils
 from autotest_lib.server.cros import provisioner
 from autotest_lib.server.cros.update_engine import update_engine_test
 
@@ -94,8 +93,6 @@ class autoupdate_EndToEndTest(update_engine_test.UpdateEngineTest):
         logging.debug('The test configuration supplied: %s', test_conf)
         self._print_rerun_command(test_conf)
         self._autotest_devserver = self._get_devserver_for_test(test_conf)
-
-        afe_utils.clean_provision_labels(self._host)
 
         # Install source image with quick-provision.
         source_payload_uri = test_conf['source_payload_uri']
