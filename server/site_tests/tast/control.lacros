@@ -75,7 +75,7 @@ def run(machine):
             'lacros artifact is not provisioned at expected path, %s'
             % path_to_chrome)
 
-    varslist.append('lacrosDeployedBinary=%s' %
+    varslist.append('lacros.DeployedBinary=%s' %
                     os.path.dirname(path_to_chrome)
     )
 
