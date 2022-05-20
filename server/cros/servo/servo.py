@@ -1019,17 +1019,32 @@ class Servo(object):
                 return ''
             raise
 
-    def get_ec_board(self):
-        """Get the board name from EC."""
-        if self.has_control('active_dut_controller'):
+    def can_set_active_device(self):
+        """Returns True if the servo setup supports setting the active device
+
+        Servo can only change the active device if there are multiple devices
+        and servo has the active_dut_controller control.
+        If we have _and_ in servo type that means we have two servo
+        components used in the setup and servod can choose the wrong one.
+        """
+        return ('_and_' in self.get_servo_type()
+                and self.has_control('active_dut_controller'))
+
+    def get_active_device_prefix(self):
+        """Return ccd_(gsc|cr50) or '' if the main device is active."""
+        active_device = ''
+        if self.can_set_active_device():
             # If servo v4 is allowing dual_v4 devices, then choose the
             # active device.
             active_device = self.get('active_dut_controller')
             if active_device == self.get_main_servo_device():
                 active_device = ''
-        else:
-            active_device = ''
-        return self.get('ec_board', prefix=active_device)
+        return active_device
+
+    def get_ec_board(self):
+        """Get the board name from EC."""
+
+        return self.get('ec_board', prefix=self.get_active_device_prefix())
 
     def get_ec_active_copy(self):
         """Get the active copy of the EC image."""
@@ -1370,10 +1385,9 @@ class Servo(object):
 
     def enable_main_servo_device(self):
         """Make sure the main device has control of the dut."""
-        if not self.has_control('active_dut_controller'):
+        if not self.can_set_active_device():
             return
         self.set('active_dut_controller', self.get_main_servo_device())
-
 
     def main_device_is_ccd(self):
         """Whether the main servo device (no prefixes) is a ccd device."""
