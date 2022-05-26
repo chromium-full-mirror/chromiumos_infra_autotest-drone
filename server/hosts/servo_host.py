@@ -303,6 +303,13 @@ class ServoHost(base_servohost.BaseServoHost):
             self.rpc_server_tracker.disconnect(self.servo_port)
             self._servo = None
 
+    def _to_str(self, maybe_str):
+        """If the param is bytes, convert it to a str."""
+        # b/217780680, Make this compatible with python3,
+        if isinstance(maybe_str, bytes):
+            return maybe_str.decode('utf-8', errors='replace')
+        return maybe_str
+
     def _maybe_create_servod_ssh_tunnel_proxy(self):
         """Create a xmlrpc proxy for use with a ssh tunnel.
         A lock is used to safely create a singleton proxy.
@@ -387,9 +394,9 @@ class ServoHost(base_servohost.BaseServoHost):
                 logging.debug('Unexpected error occurred on mount usb drive.')
                 return ''
 
-            release_content = self.run(
-                'cat %s/etc/lsb-release' % mount_dst,
-                ignore_status=True).stdout.strip()
+            release_content = self._to_str(
+                    self.run('cat %s/etc/lsb-release' % mount_dst,
+                             ignore_status=True).stdout.strip())
 
             if not re.search(r'RELEASE_TRACK=.*test', release_content):
                 logging.info('The image on usbkey is not a test image')
@@ -427,7 +434,8 @@ class ServoHost(base_servohost.BaseServoHost):
             updater_bin = os.path.join(mount_dst,
                                        'usr/sbin/chromeos-firmwareupdate')
             self.run('%s --unpack %s' % (updater_bin, fw_dst))
-            return self.run('%s --manifest' % updater_bin).stdout
+            return self._to_str(self.run('%s --manifest' % updater_bin).stdout)
+
         finally:
             self._unmount_drive(mount_dst)
 
@@ -862,15 +870,16 @@ class ServoHost(base_servohost.BaseServoHost):
         """Helper function to handle non-zero servodtool response.
         """
         if re.search(servo_constants.ERROR_MESSAGE_USB_HUB_NOT_COMPATIBLE,
-                     response.stdout):
+                     self._to_str(response.stdout)):
             logging.error('The servo is not plugged on a usb hub that supports'
                           ' power-cycle!')
             # change the flag so we can update this label in later process.
             self.smart_usbhub = False
             return
 
-        if re.search(servo_constants.ERROR_MESSAGE_DEVICE_NOT_FOUND %
-                     self.servo_serial, response.stdout):
+        if re.search(
+                servo_constants.ERROR_MESSAGE_DEVICE_NOT_FOUND %
+                self.servo_serial, self._to_str(response.stdout)):
             logging.error('No servo with serial %s found!', self.servo_serial)
             return
 
@@ -899,7 +908,8 @@ class ServoHost(base_servohost.BaseServoHost):
         if resp.exit_status != 0:
             self._process_servodtool_error(resp)
             return ''
-        usb_path = resp.stdout.strip()
+        usb_path = self._to_str(resp.stdout.strip())
+
         logging.info('Usb path of servo %s is %s', self.servo_serial, usb_path)
         return usb_path
 
@@ -912,7 +922,7 @@ class ServoHost(base_servohost.BaseServoHost):
         if resp.exit_status != 0:
             self._process_servodtool_error(resp)
             return ''
-        return resp.stdout.strip()
+        return self._to_str(resp.stdout.strip())
 
     def reboot_servo_v3_on_need(self):
         """Check and reboot servo_v3 based on below conditions.
@@ -1145,7 +1155,7 @@ class ServoHost(base_servohost.BaseServoHost):
             # Here we failed to find anything.
             logging.info('Failed to find remote servod logs. Ignoring.')
             return []
-        logfiles = res.stdout.strip().split()
+        logfiles = self._to_str(res.stdout.strip().split())
         timestamps = set()
         for logfile in logfiles:
             ts_match = self.TS_EXTRACTOR.match(logfile)
@@ -1188,7 +1198,7 @@ class ServoHost(base_servohost.BaseServoHost):
                 logging.warning('Failed to find servod logs on servo host.')
                 logging.warning(res.stderr.strip())
             return None
-        fname = os.path.basename(res.stdout.strip())
+        fname = os.path.basename(self._to_str(res.stdout.strip()))
         # From the fname, ought to extract the timestamp using the TS_EXTRACTOR
         ts_match = self.TS_EXTRACTOR.match(fname)
         if not ts_match:
@@ -1256,7 +1266,7 @@ class ServoHost(base_servohost.BaseServoHost):
         cmd = 'find %s -maxdepth 1 -name "log.%s*"' % (self.remote_log_dir,
                                                        instance_ts)
         res = self.run(cmd, stderr_tee=None, ignore_status=True)
-        files = res.stdout.strip().split()
+        files = self._to_str(res.stdout.strip()).split()
         try:
             if self.is_containerized_servod():
                 client = docker_utils.get_docker_client()
@@ -1445,7 +1455,7 @@ class ServoHost(base_servohost.BaseServoHost):
         try:
             cmd = 'lsusb | grep "%s"' % "\|".join(vid_pids)
             result = self.run(cmd, ignore_status=True, timeout=30)
-            if result.exit_status == 0 and result.stdout.strip():
+            if result.exit_status == 0 and self._to_str(result.stdout.strip()):
                 logging.debug('The servo board is detected on servo_v3')
                 return True
             logging.debug('%s; %s', not_detected, result)
