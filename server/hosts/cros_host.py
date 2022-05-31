@@ -644,8 +644,8 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
             image_storage_server = CONFIG.get_config_value(
                     'CROS', 'image_storage_server', type=str)
         gs_bucket = image_storage_server.lstrip('gs://').rstrip('/')
-        return '%s/decompress/%s/%s/%s' % (ds.url(), gs_bucket, image_name,
-                                           'autotest_server_package.tar.bz2')
+        return '%s/download/%s/%s/%s' % (ds.url(), gs_bucket, image_name,
+                                         'autotest_server_package.tar.bz2')
 
     def stage_image_for_servo(self, image_name=None, artifact='test_image'):
         """Stage a build on a devserver and return the update_url.
