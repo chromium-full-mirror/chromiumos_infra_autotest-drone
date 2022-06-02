@@ -86,6 +86,21 @@
     "main_name": "ChromeOS_Graphics"
   },
   {
+    "autotest_name": "chromium_Telemetry.loading.desktop",
+    "dashboard_test_name": "loading.desktop",
+    "main_name": "ChromeOSLacrosPerf"
+  },
+  {
+    "autotest_name": "chromium_Telemetry.rendering.desktop",
+    "dashboard_test_name": "rendering.desktop",
+    "main_name": "ChromeOSLacrosPerf"
+  },
+  {
+    "autotest_name": "chromium_Telemetry.speedometer2",
+    "dashboard_test_name": "speedometer2",
+    "main_name": "ChromeOSLacrosPerf"
+  },
+  {
     "autotest_name": "enterprise_CFM_MeetingRoomScenario.idle_in_meeting_with_bots",
     "main_name": "ChromeOS_Enterprise"
   },
