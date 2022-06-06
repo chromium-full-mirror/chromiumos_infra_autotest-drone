@@ -49,7 +49,6 @@ See the best practices guide, existing tests, and comments in the code.
 
 [Autotest Best Practices](docs/best-practices.md)
 
-
 ## Grabbing the latest source
 
 `git clone https://chromium.googlesource.com/chromiumos/third_party/autotest`
@@ -62,8 +61,8 @@ See the coding style guide for guidance on submitting patches.
 
 ## Pre-upload hook dependencies
 
-You need to run `utils/build_externals.py` to set up the dependencies
-for pre-upload hook tests.
+You need to run `utils/build_externals.py` to set up the dependencies for
+pre-upload hook tests.
 
 ## Setting up Lucifer
 
