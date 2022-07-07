@@ -100,8 +100,8 @@ class firmware_EventLog(FirmwareTest):
                               'mainfw_type': 'developer',
                               }))
         self._gather_events()
-        if (not self._has_event(r'System boot') or
-            not self._has_event(r'Chrome OS Developer Mode')):
+        if (not self._has_event(r'System boot')
+                    or not self._has_event(r'Chrome[ ]?OS Developer Mode')):
             raise error.TestFail('Missing required event on dev mode boot.')
         if self._has_event(r'Recovery Mode|Sleep| Wake'):
             raise error.TestFail('Incorrect event logged on dev mode boot.')
@@ -123,8 +123,8 @@ class firmware_EventLog(FirmwareTest):
                               'mainfw_type': 'normal',
                               }))
         self._gather_events()
-        if (not self._has_event(r'System boot') or
-            not self._has_event(r'Chrome OS Recovery Mode \| Recovery Button')):
+        if (not self._has_event(r'System boot') or not self._has_event(
+                r'Chrome[ ]?OS Recovery Mode \| Recovery Button')):
             raise error.TestFail('Missing required event in recovery mode.')
         if self._has_event(r'Developer Mode|Sleep|FW Wake|ACPI Wake \| S3'):
             raise error.TestFail('Incorrect event logged in recovery mode.')
