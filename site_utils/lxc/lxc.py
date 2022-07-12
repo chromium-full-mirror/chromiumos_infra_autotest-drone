@@ -72,14 +72,10 @@ def download_extract(url, target, extract_dir):
     @param target: Path of the file to save to.
     @param extract_dir: Directory to extract the content of the file to.
     """
-    remote_url = dev_server.DevServer.get_server_url(url)
     # This can be run in multiple threads, pick a unique tmp_file.name.
     with tempfile.NamedTemporaryFile(prefix=os.path.basename(target) + '_',
                                      delete=False) as tmp_file:
-        if remote_url in dev_server.ImageServerBase.servers():
-            _download_via_devserver(url, tmp_file.name)
-        else:
-            _download_via_curl(url, tmp_file.name)
+        _download_via_curl(url, tmp_file.name)
         common_utils.run('sudo mv %s %s' % (tmp_file.name, target))
     common_utils.run('sudo tar -xvf %s -C %s' % (target, extract_dir))
 
