@@ -54,10 +54,6 @@ _CHROMIUM_BUILD_URL = CONFIG.get_config_value(
 
 LAB_GOOD_STATES = ('open', 'throttled')
 
-ENABLE_DRONE_IN_RESTRICTED_SUBNET = CONFIG.get_config_value(
-        'CROS', 'enable_drone_in_restricted_subnet', type=bool,
-        default=False)
-
 # Wait at most 10 mins for duts to go idle.
 IDLE_DUT_WAIT_TIMEOUT = 600
 

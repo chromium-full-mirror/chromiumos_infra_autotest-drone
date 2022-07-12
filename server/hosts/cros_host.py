@@ -599,12 +599,7 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
         @raise: error.AutoservError if fail to locate the build to test with, or
                 fail to stage server-side package.
         """
-        # If enable_drone_in_restricted_subnet is False, do not set hostname
-        # in devserver.resolve call, so a devserver in non-restricted subnet
-        # is picked to stage autotest server package for drone to download.
         hostname = self.hostname
-        if not server_utils.ENABLE_DRONE_IN_RESTRICTED_SUBNET:
-            hostname = None
         if image:
             image_name = tools.get_build_from_image(image)
             if not image_name:
@@ -617,13 +612,7 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
             if job_repo_url:
                 devserver_url, image_name = (
                     tools.get_devserver_build_from_package_url(job_repo_url))
-                # If enable_drone_in_restricted_subnet is True, use the
-                # existing devserver. Otherwise, resolve a new one in
-                # non-restricted subnet.
-                if server_utils.ENABLE_DRONE_IN_RESTRICTED_SUBNET:
-                    ds = dev_server.ImageServer(devserver_url)
-                else:
-                    ds = dev_server.ImageServer.resolve(image_name)
+                ds = dev_server.ImageServer(devserver_url)
             elif info.build is not None:
                 ds = dev_server.ImageServer.resolve(info.build, hostname)
                 image_name = info.build
