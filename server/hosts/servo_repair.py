@@ -399,7 +399,7 @@ class _ServodEchoVerifier(hosts.Verifier):
     Verifier to check that the `servod` upstart job is responsible.
     """
 
-    SERVOD_INITIALIZED = 'servodtool instance show -p %d'
+    SERVOD_INITIALIZED = 'servodtool instance wait-for-active -p %d --timeout 60'
     SERVOD_RESPONSIVE = 'dut-control -p %d serialname'
 
     @timeout_util.TimeoutDecorator(cros_constants.VERIFY_TIMEOUT_SEC)
@@ -503,7 +503,7 @@ class _Cr50ConsoleVerifier(hosts.Verifier):
     """
 
     COMMAND_TO_CHECK_CONSOLE = (
-            'cr50_ccd_level',
+            'gsc_ccd_level',
             'cr50_testlab',
             'cr50_ccd_state_flags',
     )
@@ -521,9 +521,9 @@ class _Cr50ConsoleVerifier(hosts.Verifier):
                         sys.exc_info()[2])
 
     def _is_applicable(self, host):
-        # Only when DUT is running through ccd.
+        # Only when DUT is running through ccd or c2d2.
         # TODO(coconutruben): replace with ccd API when available in servo.py
-        return host.get_servo() and host.get_servo().main_device_is_ccd()
+        return host.get_servo() and host.get_servo().main_device_uses_gsc_drv()
 
     @property
     def description(self):
@@ -550,6 +550,10 @@ class _CCDTestlabVerifier(hosts.Verifier):
         status = host.get_servo().get('cr50_testlab')
         # check by 'on' to fail when get unexpected value
         if status == 'on':
+            # If servo uses cr50 to control the dut, open ccd so repair actions
+            # that reset the dut will work (cr50_reboot, cold_reset, warm_reset)
+            if host.get_servo().main_device_uses_gsc_drv():
+                host.get_servo().set_nocheck('cr50_testlab', 'open')
             # ccd testlab enabled
             return
         raise hosts.AutoservNonCriticalVerifyError(
@@ -1093,11 +1097,11 @@ class _RestartServod(hosts.RepairAction):
     @timeout_util.TimeoutDecorator(cros_constants.REPAIR_TIMEOUT_SEC)
     def repair(self, host):
         if host.is_containerized_servod():
-            pass
+            logging.debug('Restarting servod container')
         elif not host.is_cros_host():
             raise hosts.AutoservRepairError(
                     'Can\'t restart servod: not running '
-                    'embedded Chrome OS.',
+                    'embedded ChromeOS.',
                     'servo_not_applicable_to_non_cros_host')
         host.restart_servod()
 
@@ -1407,7 +1411,7 @@ class _ServoMicroFlashRepair(hosts.RepairAction):
         if not host.is_cros_host():
             raise hosts.AutoservRepairError(
                     'Can\'t restart servod: not running '
-                    'embedded Chrome OS.',
+                    'embedded ChromeOS.',
                     'servo_not_applicable_to_non_cros_host')
         servo = host.get_servo()
         if not servo or self._TARGET_SERVO not in servo.get_servo_type():

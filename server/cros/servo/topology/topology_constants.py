@@ -17,6 +17,7 @@ ST_DEVICE_HUB_PORT = 'usb_hub_port'
 ST_V4_TYPE = 'servo_v4'
 ST_V4P1_TYPE = 'servo_v4p1'
 ST_CR50_TYPE = 'ccd_cr50'
+ST_TI50_TYPE = 'ccd_gsc'
 ST_C2D2_TYPE = 'c2d2'
 ST_SERVO_MICRO_TYPE = 'servo_micro'
 ST_SWEETBERRY_TYPE = 'sweetberry'
@@ -26,6 +27,7 @@ ST_PRODUCT_TYPES = {
         'Servo V4': ST_V4_TYPE,
         'Servo V4p1': ST_V4P1_TYPE,
         'Cr50': ST_CR50_TYPE,
+        'Ti50': ST_TI50_TYPE,
         'Servo Micro': ST_SERVO_MICRO_TYPE,
         'C2D2': ST_C2D2_TYPE,
         'Sweetberry': ST_SWEETBERRY_TYPE
@@ -36,6 +38,7 @@ VID_PID_SERVO_TYPES = {
         '18d1:501b': ST_V4_TYPE,
         '18d1:520d': ST_V4P1_TYPE,
         '18d1:5014': ST_CR50_TYPE,
+        '18d1:504a': ST_TI50_TYPE,
         '18d1:501a': ST_SERVO_MICRO_TYPE,
         '18d1:5041': ST_C2D2_TYPE,
         '18d1:5020': ST_SWEETBERRY_TYPE
