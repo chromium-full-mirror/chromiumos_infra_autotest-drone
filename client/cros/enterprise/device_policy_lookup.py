@@ -4,8 +4,8 @@ to a stand alone file for readability/maintainability. Source is
 policy_templates.json, and this file will need to be periodically updated if new
 device policies are added to the proto.
 """
-# TODO b:169251326 terms below are set outside of this codebase
-# and should be updated when possible.
+# TODO(b/169251326): Terms below are set outside of this codebase and should be
+# updated when possible.
 # ("whitelist" -> "allowlist", "blacklist" --> "blocklist" or "denylist")
 DEVICE_POLICY_DICT = {
     'DeviceGuestModeEnabled': 'guest_mode_enabled.guest_mode_enabled',
@@ -20,7 +20,6 @@ DEVICE_POLICY_DICT = {
     'DeviceLoginScreenDomainAutoComplete': 'login_screen_domain_auto_complete.login_screen_domain_auto_complete',
     'DeviceLoginScreenLocales': 'login_screen_locales.login_screen_locales',
     'DeviceLoginScreenInputMethods': 'login_screen_input_methods.login_screen_input_methods',
-    'DeviceSamlLoginAuthenticationType': 'saml_login_authentication_type.saml_login_authentication_type',
     'DeviceDataRoamingEnabled': 'data_roaming_enabled.data_roaming_enabled',
     'AllowKioskAppControlChromeVersion': 'allow_kiosk_app_control_chrome_version.allow_kiosk_app_control_chrome_version',
     'DevicePolicyRefreshRate': 'device_policy_refresh_rate.device_policy_refresh_rate',
