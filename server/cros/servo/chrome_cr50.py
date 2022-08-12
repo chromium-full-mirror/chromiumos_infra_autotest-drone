@@ -296,10 +296,15 @@ class ChromeCr50(chrome_ec.ChromeConsole):
                 ['Flash WP: (forced )?(enabled|disabled).*at boot: (forced )?'
                  '(follow|enabled|disabled)'], safe=True)[0]
         _, forced, enabled, _, atboot = rv
-        logging.debug(rv)
+        logging.info(rv[0])
         return (not forced, enabled =='enabled',
                 atboot == 'follow', atboot == 'enabled')
 
+    def set_wp_state(self, setting):
+        """Set the WP state."""
+        self.send_command('wp ' + setting)
+        time.sleep(self.SHORT_WAIT)
+        return self.get_wp_state()
 
     def in_dev_mode(self):
         """Return True if cr50 thinks the device is in dev mode"""
