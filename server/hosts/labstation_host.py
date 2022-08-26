@@ -5,6 +5,7 @@
 """This file provides core logic for labstation verify/repair process."""
 
 import logging
+import os
 
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import global_config
@@ -192,22 +193,31 @@ class LabstationHost(base_servohost.BaseServoHost):
         @raise: error.AutoservError if fail to locate the build to test with, or
                 fail to stage server-side package.
         """
-        hostname = self.hostname
+        # It's drone to download the SSP package, so we use the drone name to
+        # resolve the cache server.
+        # Note: Don't try to get IP of the host because the IP based cache
+        # server selection logic are deprecating.
+        # Both lab drones and satlab drones have the env var below.
+        drone_name = os.environ.get('DOCKER_DRONE_SERVER_NAME')
+        if not drone_name:
+            raise error.AutoservError('Cannot get drone name from environment')
         if image:
             image_name = tools.get_build_from_image(image)
             if not image_name:
                 raise error.AutoservError(
                         'Failed to parse build name from %s' % image)
-            ds = dev_server.ImageServer.resolve(image_name, hostname)
+            ds = dev_server.ImageServer.resolve(image_name, drone_name)
         else:
             info = self.host_info_store.get()
             job_repo_url = info.attributes.get(ds_constants.JOB_REPO_URL, '')
             if job_repo_url:
-                devserver_url, image_name = (
-                    tools.get_devserver_build_from_package_url(job_repo_url))
-                ds = dev_server.ImageServer(devserver_url)
+                _, image_name = (tools.get_devserver_build_from_package_url(
+                        job_repo_url))
+                # Don't use cache server URL in job_repo_url since we are
+                # resolving a cache server for the *drone*, not the DUT.
+                ds = dev_server.ImageServer.resolve(image_name, drone_name)
             elif info.build is not None:
-                ds = dev_server.ImageServer.resolve(info.build, hostname)
+                ds = dev_server.ImageServer.resolve(info.build, drone_name)
                 image_name = info.build
             else:
                 raise error.AutoservError(
