@@ -92,17 +92,6 @@ def _download_via_curl(url, target_file_path):
                      stderr_tee=common_utils.TEE_TO_LOGS, timeout=3*60)
 
 
-# Make sure retries only happen in the non-timeout case.
-@retry.retry((error.CmdError),
-             raiselist=[error.CmdTimeoutError],
-             timeout_min=(constants.DEVSERVER_CALL_TIMEOUT *
-                          constants.DEVSERVER_CALL_RETRY / 60),
-             delay_sec=constants.DEVSERVER_CALL_DELAY)
-def _download_via_devserver(url, target_file_path):
-    dev_server.ImageServerBase.download_file(
-        url, target_file_path, timeout=constants.DEVSERVER_CALL_TIMEOUT)
-
-
 def _install_package_precheck(packages):
     """If SSP is not enabled or the test is running in chroot (using test_that),
     packages installation should be skipped.
