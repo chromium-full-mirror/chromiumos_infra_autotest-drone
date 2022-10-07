@@ -247,7 +247,7 @@ class PseudoNetworkInterface(object):
                   (self.peer, self.ROUTE_PROTO))
         os.close(os.open(self.lease_file, os.O_CREAT | os.O_TRUNC))
         self.dnsmasq = subprocess.Popen(
-            ['/usr/local/sbin/dnsmasq',
+            ['/usr/sbin/dnsmasq',
              '--pid-file',
              '-k',
              '--dhcp-leasefile=%s' % self.lease_file,
