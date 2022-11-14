@@ -931,35 +931,6 @@ class DevServerTest(mox.MoxTestBase):
         self._testSuccessfulTriggerDownloadAndroid(synchronous=False)
 
 
-    @unittest.expectedFailure
-    def testGetUnrestrictedDevservers(self):
-        """Test method get_unrestricted_devservers works as expected."""
-        restricted_devserver = 'http://192.168.0.100:8080'
-        unrestricted_devserver = 'http://172.1.1.3:8080'
-        self.mox.StubOutWithMock(dev_server.ImageServer, 'servers')
-        dev_server.ImageServer.servers().AndReturn([restricted_devserver,
-                                                    unrestricted_devserver])
-        self.mox.ReplayAll()
-        # crbug.com/1027277: get_unrestricted_devservers() now returns all
-        # servers.
-        self.assertEqual(dev_server.ImageServer.get_unrestricted_devservers(
-                                [('192.168.0.0', 24)]),
-                         [unrestricted_devserver])
-
-    def testGetUnrestrictedDevserversReturnsAll(self):
-        """Test method get_unrestricted_devservers works as expected."""
-        restricted_devserver = 'http://192.168.0.100:8080'
-        unrestricted_devserver = 'http://172.1.1.3:8080'
-        self.mox.StubOutWithMock(dev_server.ImageServer, 'servers')
-        dev_server.ImageServer.servers().AndReturn([restricted_devserver,
-                                                    unrestricted_devserver])
-        self.mox.ReplayAll()
-        # crbug.com/1027277: get_unrestricted_devservers() now returns all
-        # servers.
-        self.assertEqual(dev_server.ImageServer.get_unrestricted_devservers(
-                                [('192.168.0.0', 24)]),
-                         [restricted_devserver, unrestricted_devserver])
-
     def testDevserverHealthy(self):
         """Test which types of connections that method devserver_healthy uses
         for different types of DevServer.

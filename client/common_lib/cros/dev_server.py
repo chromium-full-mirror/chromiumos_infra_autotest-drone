@@ -665,8 +665,7 @@ class DevServer(object):
         # filtered in get_servers_in_same_subnet.
         server_names = {}
         all_devservers = []
-        devservers = (cls.get_unrestricted_devservers() if unrestricted_only
-                      else cls.servers())
+        devservers = cls.servers()
         for server in devservers:
             server_name = get_hostname(server)
             server_names[server_name] = server
@@ -681,23 +680,6 @@ class DevServer(object):
                                                       all_devservers)
         return [server_names[s] for s in devservers]
 
-
-    @classmethod
-    def get_unrestricted_devservers(
-                cls, restricted_subnets=utils.RESTRICTED_SUBNETS):
-        """Get the devservers not in any restricted subnet specified in
-        restricted_subnets.
-
-        @param restricted_subnets: A list of restriected subnets.
-
-        @return: A list of devservers not in any restricted subnet.
-
-        """
-        if not restricted_subnets:
-            return cls.servers()
-
-        metrics.Counter('chromeos/autotest/devserver/unrestricted_hotfix')
-        return cls.servers()
 
     @classmethod
     def get_healthy_devserver(cls, build, devservers, ban_list=None):
@@ -754,7 +736,7 @@ class DevServer(object):
                               'devserver without subnet constraint.', hostname)
 
         if not host_ip:
-            return cls.get_unrestricted_devservers(restricted_subnets), False
+            return cls.servers(), False
 
         # For the sake of backward compatibility, we use the argument
         # 'restricted_subnets' to store both the legacy subnets (a tuple of
@@ -792,7 +774,7 @@ class DevServer(object):
             return (cls.get_devservers_in_same_subnet(
                     host_ip, DEFAULT_SUBNET_MASKBIT, True), True)
 
-        return cls.get_unrestricted_devservers(restricted_subnets), False
+        return cls.servers(), False
 
 
     @classmethod
