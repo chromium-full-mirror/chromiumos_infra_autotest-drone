@@ -1905,6 +1905,22 @@ _MOBLAB_ETH_0 = 'eth0'
 _MOBLAB_ETH_1 = 'eth1'
 
 
+# ALL_CACHE_SERVERS is a list that stores all cache server info.
+ALL_CACHE_SERVERS = []
+
+
+def _setup_cache_servers():
+    raw_json = CONFIG.get_config_value('CROS', 'cache_server', default=None)
+    if not raw_json:
+        return
+
+    global ALL_CACHE_SERVERS
+    ALL_CACHE_SERVERS = json.loads(raw_json)
+
+
+_setup_cache_servers()
+
+
 def _parse_subnet(subnet_str):
     """Parse a subnet string to a (ip, mask) tuple."""
     ip, mask = subnet_str.split('/')
