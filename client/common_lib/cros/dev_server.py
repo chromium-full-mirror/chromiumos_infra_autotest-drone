@@ -708,17 +708,13 @@ class DevServer(object):
 
 
     @classmethod
-    def get_available_devservers(cls,
-                                 hostname=None,
-                                 prefer_local_devserver=PREFER_LOCAL_DEVSERVER,
-                                 restricted_subnets=utils.ALL_SUBNETS):
+    def get_available_devservers(
+            cls, hostname=None, prefer_local_devserver=PREFER_LOCAL_DEVSERVER):
         """Get devservers in the same subnet of the given hostname.
 
         @param hostname: Hostname of a DUT to choose devserver for.
         @param prefer_local_devserver: A boolean indicating using a devserver in
                                        the same subnet with the DUT.
-        @param restricted_subnets: A list of restricted subnets or p2p subnet
-                                   groups.
 
         @return: A tuple of (devservers, can_retry), devservers is a list of
                  devservers that's available for the given hostname. can_retry
@@ -747,44 +743,14 @@ class DevServer(object):
                     'Will pick a random cache server.', hostname)
             return cls.servers(), False
 
-        # For the sake of backward compatibility, we use the argument
-        # 'restricted_subnets' to store both the legacy subnets (a tuple of
-        # (ip, mask)) and p2p subnets group (a list of subnets, i.e. [(ip,
-        # mask), ...]) data. For consistency, we convert all legacy subnets to
-        # a "singleton p2p subnets" and store them in a new list.
-        all_subnets = []
-        for s in restricted_subnets:
-            if isinstance(s, tuple):
-                all_subnets.append([s])
-            else:
-                all_subnets.append(s)
+        servers = _select_servers_using_subnet(host_ip,
+                                               utils.ALL_CACHE_SERVERS)
+        if servers:
+            return servers, False
 
-        # Find devservers in the subnets reachable from the DUT.
-        if host_ip and all_subnets:
-            subnet_group = _get_subnet_group_for_host_ip(
-                    host_ip, all_subnets=all_subnets)
-            if subnet_group:
-                devservers = set()
-                for ip, mask in subnet_group:
-                    logging.debug(
-                            'The host %s (%s) is in a restricted subnet '
-                            '(or its peers). '
-                            'Try to locate devservers inside subnet '
-                            '%s/%d.', hostname, host_ip, ip, mask)
-                    devservers |= set(
-                            cls.get_devservers_in_same_subnet(ip, mask))
-                return sorted(devservers), False
-
-        # If prefer_local_devserver is set to True and the host is not in
-        # restricted subnet, pick a devserver in the same subnet if possible.
-        # Set can_retry to True so it can pick a different devserver if all
-        # devservers in the same subnet are down.
-        if prefer_local_devserver:
-            return (cls.get_devservers_in_same_subnet(
-                    host_ip, DEFAULT_SUBNET_MASKBIT, True), True)
-
+        # Cannot select servers based on neither UFS zone nor subnet, so return
+        # all servers in the case of setting preferred servers by user.
         return cls.servers(), False
-
 
     @classmethod
     def resolve(cls, build, hostname=None, ban_list=None):
@@ -878,6 +844,18 @@ def _select_servers_using_ufs_zone(hostname, all_cache_servers):
             "http://%(name)s:%(port)d" % (s) for s in all_cache_servers
             if zone in s['zones']
     ])
+
+
+def _select_servers_using_subnet(host_ip, all_cache_servers):
+    result = []
+    for server in all_cache_servers:
+        for subnet_str in server['servingSubnets']:
+            subnet, mask = subnet_str.split('/')
+            if utils.is_in_same_subnet(host_ip, subnet, int(mask)):
+                result.append('http://%(name)s:%(port)d' % (server))
+                break
+
+    return sorted(result)
 
 
 class CrashServer(DevServer):
@@ -2129,26 +2107,6 @@ def _get_subnet_for_host_ip(host_ip,
             return subnet_ip, mask_bits
 
     return None, None
-
-
-def _get_subnet_group_for_host_ip(host_ip, all_subnets=()):
-    """Get subnet group for a given host IP.
-
-    All subnets in the group are reachable from the input host ip.
-
-    @param host_ip: the IP of a DUT.
-    @param all_subnets: A two level list of subnets including singleton
-                        lists of a restricted subnet and p2p subnets.
-
-    @return: a list of (subnet_ip, mask_bits) tuple. If no matched subnets for
-             the host_ip, return [].
-    """
-    for subnet_group in all_subnets:
-        subnet, _ = _get_subnet_for_host_ip(host_ip,
-                                            restricted_subnets=subnet_group)
-        if subnet:
-            return subnet_group
-    return []
 
 
 def get_least_loaded_devserver(devserver_type=ImageServer, hostname=None):
