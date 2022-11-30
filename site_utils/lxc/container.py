@@ -11,7 +11,6 @@ import json
 import logging
 import os
 import re
-import shutil
 import tempfile
 import time
 
@@ -345,18 +344,10 @@ class Container(object):
 
         @return: True if the network is up, otherwise False.
         """
-        # TODO(b/184304822) Remove the extra logging.
         try:
-            with open('/proc/net/udp') as f:
-                logging.debug('Checking UDP on drone:\n %s', f.read())
-        except Exception as e:
-            logging.debug(e)
-
-        try:
-            self.attach_run('ifconfig eth0 ;'
-                            'ping -c 1 8.8.8.8 ;'
-                            'cat /proc/net/udp ;'
-                            'curl --head %s' % constants.CONTAINER_BASE_URL)
+            self.attach_run(
+                    'ifconfig eth0 ; ping -c 1 8.8.8.8 ; curl --head %s' %
+                    constants.CONTAINER_BASE_URL)
             return True
         except error.CmdError as e:
             logging.debug(e)
@@ -391,17 +382,11 @@ class Container(object):
         if wait_for_network:
             logging.debug('Wait for network to be up.')
             start_time = time.time()
-            try:
-                utils.poll_for_condition(
-                        condition=self.is_network_up,
-                        timeout=constants.NETWORK_INIT_TIMEOUT,
-                        sleep_interval=constants.NETWORK_INIT_CHECK_INTERVAL,
-                        desc='network is up')
-            except Exception:
-                # Save and upload syslog for network issues debugging.
-                shutil.copy('/var/log/syslog',
-                            os.path.join(log_dir, 'ssp_logs', 'debug'))
-                raise
+            utils.poll_for_condition(
+                    condition=self.is_network_up,
+                    timeout=constants.NETWORK_INIT_TIMEOUT,
+                    sleep_interval=constants.NETWORK_INIT_CHECK_INTERVAL,
+                    desc='network is up')
             logging.debug('Network is up after %.2f seconds.',
                           time.time() - start_time)
 
