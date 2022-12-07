@@ -211,7 +211,8 @@ class ContainerBucket(object):
                    control=None,
                    skip_cleanup=False,
                    job_folder=None,
-                   dut_name=None):
+                   dut_name=None,
+                   resource_limits=None):
         """Setup test container for the test job to run.
 
         The setup includes:
@@ -235,6 +236,10 @@ class ContainerBucket(object):
         @param job_folder: Folder name of the job, e.g., 123-debug_user.
         @param dut_name: Name of the dut to run test, used as the hostname of
                          the container. Default is None.
+        @param resource_limits: Dictionary which key is in format of
+                                "[cgroup controller].[controller file]" and the
+                                value is the cgroup configuration value. For
+                                example: {'cpuset.cpus': '0,1'}.
         @return: A Container object for the test container.
 
         @raise ContainerError: If container does not exist, or not running.
@@ -299,6 +304,8 @@ class ContainerBucket(object):
                 constants.CONTAINER_AUTOTEST_DIR.lstrip(os.path.sep))
         utils.run('sudo chown -R root "%s"' % autotest_path)
         utils.run('sudo chgrp -R root "%s"' % autotest_path)
+
+        container.limit_resource(resource_limits)
 
         container.start(wait_for_network=True, log_dir=result_path)
         deploy_config_manager.deploy_post_start()

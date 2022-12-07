@@ -490,6 +490,22 @@ class Container(object):
         self.attach_run('test -f /root/gsutil/gsutil && '
                         'ln -s /root/gsutil/gsutil /usr/bin/gsutil || true')
 
+    def limit_resource(self, resource_limits):
+        """Config LXC container to limit resource usage.
+
+        LXC support configuring the cgroup it creates. Please see the
+        'lxc.cgroup' configuration in
+        https://linuxcontainers.org/lxc/manpages/man5/lxc.container.conf.5.html
+
+        For all available controllers and controller files, please see
+        https://www.kernel.org/doc/Documentation/cgroup-v1/.
+
+        @param resource_limits: Dictionary whose key is in format of
+                                "[cgroup controller].[controller file]" and the
+                                value is the cgroup configuration value.
+        """
+        for k, v in resource_limits.items():
+            self._set_lxc_config('lxc.cgroup.%s' % k, v)
 
     def modify_import_order(self):
         """Swap the python import order of lib and local/lib.

@@ -9,6 +9,7 @@ Run a control file through the server side engine
 import datetime
 import contextlib
 import getpass
+import json
 import logging
 import os
 import re
@@ -234,12 +235,16 @@ def _run_with_ssp(job, container_id, job_id, results, parser, ssp_url,
             base_name=_ssp_base_image_name_or_default(parser.options))
     control = (parser.args[0] if len(parser.args) > 0 and parser.args[0] != ''
                else None)
+
+    resource_limits = json.loads(_CONFIG.get_config_value(
+        'AUTOSERV', 'ssp_resource_limits', default='{}'))
     try:
         dut_name = machines[0] if len(machines) >= 1 else None
         test_container = bucket.setup_test(container_id, job_id, ssp_url,
                                            results, control=control,
                                            job_folder=_LXC_JOB_FOLDER,
-                                           dut_name=dut_name)
+                                           dut_name=dut_name,
+                                           resource_limits=resource_limits)
     except Exception as e:
         job.record('START', None, None, 'Starting SSP')
         job.record('END ABORT', None, None,
