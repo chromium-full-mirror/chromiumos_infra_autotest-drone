@@ -425,26 +425,6 @@ class Container(object):
                       self.name)
         lxc_utils.destroy(self.container_path, self.name, force=force)
 
-    def stats(self):
-        """Get the performance statistics of the container.
-
-        It returns a dictionary whose key is the statistic name, e.g., CPU use,
-        etc. Please see the man page of `lxc-info` for all statistics we
-        gather.
-        """
-        cmd = 'sudo lxc-info -P %s -n "%s" --stats --no-humanize' % (
-                self.container_path, self.name)
-        result = utils.run(cmd)
-        stats = {}
-        if result and result.exit_status == 0:
-            for line in result.stdout.strip().split('\n'):
-                k, v = line.rstrip().split(':')
-                k, v = k.strip(), v.strip()
-                # All stats value are integers except 'Link' which is the NIC
-                # name.
-                stats[k] = v if k == 'Link' else int(v)
-
-        return stats
 
     def mount_dir(self, source, destination, readonly=False):
         """Mount a directory in host to a directory in the container.

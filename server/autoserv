@@ -278,7 +278,6 @@ def _run_with_ssp(job, container_id, job_id, results, parser, ssp_url,
 
     cmd_line = ' '.join(["'%s'" % arg if ' ' in arg else arg for arg in args])
     logging.info('Run command in container: %s', cmd_line)
-    t0 = time.time()
     success = False
     try:
         test_container.attach_run(cmd_line)
@@ -293,25 +292,10 @@ def _run_with_ssp(job, container_id, job_id, results, parser, ssp_url,
                        'logs in ssp_logs folder for more details.' % e)
         raise
     finally:
-        _update_ssp_metrics(test_container, t0, success)
+        metrics.Counter(
+            'chromeos/autotest/experimental/execute_job_in_ssp').increment(
+                fields={'success': success})
         test_container.destroy()
-
-
-def _update_ssp_metrics(container, start_time, success):
-    """Update SSP related metrics."""
-    metrics.Counter(
-        'chromeos/autotest/experimental/execute_job_in_ssp').increment(
-            fields={'success': success})
-    metrics.SecondsDistribution(
-            'chromeos/autotest/lxc/container_run_duration').add(
-                    time.time() - start_time)
-    s = container.stats()
-    metrics.Distribution(
-            'chromeos/autotest/lxc/stat/blkio').add(s.get('BlkIO use', 0))
-    metrics.Distribution(
-            'chromeos/autotest/lxc/stat/cpu').add(s.get('CPU use', 0))
-    metrics.Distribution(
-            'chromeos/autotest/lxc/stat/memory').add(s.get('Memory use', 0))
 
 
 def correct_results_folder_permission(results):
