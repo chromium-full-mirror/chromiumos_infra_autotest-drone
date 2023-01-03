@@ -1102,6 +1102,11 @@ class Servo(object):
             return True
         except ControlUnavailableError:
             return False
+        except Exception as e:
+            logging.warning(
+                    'Unknown has_control error %r. Returning false: %s',
+                    type(e), e)
+        return False
 
     def _build_ctrl_name(self, ctrl_name, prefix):
         """Helper to build the control name if a prefix is used.
