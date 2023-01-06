@@ -79,8 +79,19 @@ class chromium_GPU(test.test):
         vpython3_spec = os.path.join(
                 os.path.dirname(os.path.abspath(__file__)), '.vpython3')
         cmd = [
-                # On Drone server vpython is in the PATH, so this must
-                # run out of SSP.
+                'rdb',
+                'stream',
+                '-test-id-prefix',
+                'ninja://chrome/test:telemetry_gpu_integration_test/',
+                '-var',
+                'builder:ChromeOS FYI Release Skylab (kevin)',
+                '-var',
+                'os:ChromeOS',
+                '-var',
+                'test_suite:pixel_skia_gold_validating_test',
+                '-coerce-negative-duration',
+                '-exonerate-unexpected-pass',
+                '--',
                 'vpython',
                 '-vpython-spec',
                 vpython3_spec,
