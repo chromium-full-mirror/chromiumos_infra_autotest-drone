@@ -12,6 +12,12 @@
         "permission": 400
     },
     {
+        "source": "/creds/ssh_keys/partner_testing_rsa",
+        "target": "/creds/ssh_keys/partner_testing_rsa",
+        "append": false,
+        "permission": 400
+    },
+    {
         "source": "shadow_config.ini",
         "target": "/usr/local/autotest/shadow_config.ini",
         "append": false,
