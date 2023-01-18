@@ -600,23 +600,6 @@ class db_sql(object):
         else:
             self.insert('tko_tests', data, commit=commit)
             test_idx = test.test_idx = self.get_last_autonumber_value()
-        data = {'test_idx': test_idx}
-
-        for i in test.iterations:
-            data['iteration'] = i.index
-            for key, value in six.iteritems(i.attr_keyval):
-                data['attribute'] = key
-                data['value'] = value
-                self.insert('tko_iteration_attributes', data,
-                            commit=commit)
-            for key, value in six.iteritems(i.perf_keyval):
-                data['attribute'] = key
-                if math.isnan(value) or math.isinf(value):
-                    data['value'] = None
-                else:
-                    data['value'] = value
-                self.insert('tko_iteration_result', data,
-                            commit=commit)
 
         data = {'test_idx': test_idx}
 
