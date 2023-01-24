@@ -43,15 +43,6 @@ class autoupdate_StartOOBEUpdate(update_engine_test.UpdateEngineTest):
                 "OobeAPI.screens.NetworkScreen.isVisible()", timeout=timeout)
         self._oobe.ExecuteJavaScript(
                 "OobeAPI.screens.NetworkScreen.clickNext()")
-        if not self._oobe.EvaluateJavaScript(
-                "OobeAPI.screens.EulaScreen.shouldSkip()"):
-            self._oobe.WaitForJavaScriptCondition(
-                    "OobeAPI.screens.EulaScreen.isVisible()", timeout=timeout)
-            self._oobe.WaitForJavaScriptCondition(
-                    "OobeAPI.screens.EulaScreen.nextButton.isEnabled()",
-                    timeout=timeout)
-            self._oobe.ExecuteJavaScript(
-                    "OobeAPI.screens.EulaScreen.clickNext()")
 
         # TODO(yunkez): remove this check after M92 is in stable
         if self._oobe.EvaluateJavaScript(
