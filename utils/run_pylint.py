@@ -515,10 +515,10 @@ def main():
                             open(pylint_rc).read())
         return batch_check_files(args_list, pylint_base_opts)
     elif os.environ.get('PRESUBMIT_FILES') is not None:
-        return check_committed_files(
-                              os.environ.get('PRESUBMIT_FILES').split('\n'),
-                              os.environ.get('PRESUBMIT_COMMIT'),
-                              pylint_base_opts)
+        return check_committed_files([
+                os.path.abspath(p)
+                for p in os.environ.get('PRESUBMIT_FILES').split('\n')
+        ], os.environ.get('PRESUBMIT_COMMIT'), pylint_base_opts)
     else:
         return check_dir('.', pylint_base_opts)
 
