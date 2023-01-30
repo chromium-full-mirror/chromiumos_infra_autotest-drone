@@ -193,7 +193,7 @@ class Chrome(object):
                                                    'autotest_private_ext')
             extension_paths.append(self._autotest_ext_path)
             finder_options.browser_options.AppendExtraBrowserArgs(
-                ['--whitelisted-extension-id=%s' % self.AUTOTEST_EXT_ID])
+                ['--allowlisted-extension-id=%s' % self.AUTOTEST_EXT_ID])
 
         self._browser_type = (self.BROWSER_TYPE_LOGIN
                               if logged_in else self.BROWSER_TYPE_GUEST)
