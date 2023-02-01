@@ -1808,16 +1808,34 @@ def get_sku():
                                                    utils.run)
 
 
+def get_ec_version_from_chardev_contents(contents):
+    """Given the contents of /dev/cros_ec, interpret the active version.
+
+    @param contents: The contents of a cros_ec chardev.
+
+    @returns The active EC version, or an empty string upon error.
+    """
+    lines = contents.splitlines()
+    if len(lines) != 4:
+        return ""
+    _, ro_version, rw_version, active_copy = lines
+    if active_copy == "read-only":
+        return ro_version
+    if active_copy == "read-write":
+        return rw_version
+    return ""
+
+
 def get_ec_version():
     """Get the ec version as strings.
 
     @returns a string representing this host's ec version.
     """
-    command = 'mosys ec info -s fw_version'
-    result = utils.run(command, ignore_status=True)
-    if result.exit_status != 0:
-        return ''
-    return result.stdout.strip()
+    try:
+        contents = utils.read_file("/dev/cros_ec")
+    except FileNotFoundError:
+        return ""
+    return get_ec_version_from_chardev_contents(contents)
 
 
 def get_firmware_version():

@@ -2537,11 +2537,8 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
 
         @returns a string representing this host's ec version.
         """
-        command = 'mosys ec info -s fw_version'
-        result = self.run(command, ignore_status=True)
-        if result.exit_status != 0:
-            return ''
-        return result.stdout.strip()
+        result = self.run("cat /dev/cros_ec", ignore_status=True)
+        return utils.get_ec_version_from_chardev_contents(result.stdout)
 
 
     def get_firmware_version(self):
