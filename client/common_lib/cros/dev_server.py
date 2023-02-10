@@ -842,14 +842,14 @@ def _select_servers_using_ufs_zone(hostname, all_cache_servers):
     logging.debug('The UFS zone of %s is %s', hostname, zone)
     return sorted([
             "http://%(name)s:%(port)d" % (s) for s in all_cache_servers
-            if zone in s['zones']
+            if zone in s.get('zones', [])
     ])
 
 
 def _select_servers_using_subnet(host_ip, all_cache_servers):
     result = []
     for server in all_cache_servers:
-        for subnet_str in server['servingSubnets']:
+        for subnet_str in server.get('servingSubnets', []):
             subnet, mask = subnet_str.split('/')
             if utils.is_in_same_subnet(host_ip, subnet, int(mask)):
                 result.append('http://%(name)s:%(port)d' % (server))
