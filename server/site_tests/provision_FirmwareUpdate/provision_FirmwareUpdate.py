@@ -59,7 +59,7 @@ class provision_FirmwareUpdate(test.test):
 
             host.firmware_install(build=value,
                                   rw_only=rw_only,
-                                  dest=self.resultsdir,
+                                  dest=None,
                                   local_tarball=fw_path,
                                   verify_version=True,
                                   try_scp=True)
