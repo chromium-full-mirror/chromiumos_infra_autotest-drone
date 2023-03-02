@@ -1557,6 +1557,8 @@ class Servo(object):
 
         if model == "dragonair":
             ec_image_candidates.append('dratini/ec.bin')
+        if model == "kled":
+            ec_image_candidates.append('kindred/ec.bin')
 
         # If that isn't found try the name from the EC RO version.
         try:
@@ -1619,6 +1621,8 @@ class Servo(object):
 
         if model == "dragonair":
             bios_image_candidates.append('image-dratini.bin')
+        if model == "kled":
+            bios_image_candidates.append('image-kindred.bin')
 
         # If that isn't found try the name from the EC RO version.
         try:
