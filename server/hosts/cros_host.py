@@ -984,6 +984,8 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
 
                 # Update firmware on DUT
                 logging.info('Updating firmware.')
+                image_bios_version, image_ec_version = self.get_version_from_image(
+                        self, dest_bios_path, dest_ec_path)
                 try:
                     self.run(fw_cmd, options="-o LogLevel=verbose")
                 except error.AutoservRunError as e:
@@ -996,8 +998,6 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                         logging.error("DUT network dropped during update"
                                       " (unexpected, since no EC image)")
                         raise
-                image_bios_version, image_ec_version = self.get_version_from_image(
-                        self, dest_bios_path, dest_ec_path)
             else:
                 # Host is not available, program firmware using servo
                 dest_bios_path = None
