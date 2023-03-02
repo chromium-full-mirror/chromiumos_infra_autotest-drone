@@ -948,6 +948,18 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
             image_ec_version = None
             image_bios_version = None
 
+            if not rw_only and self.is_up():
+                logging.info('Disabling software WP')
+                for fprom in ['host', 'ec']:
+                    self.run('flashrom -p %s --wp-disable --wp-range=0,0' %
+                             fprom,
+                             ignore_status=True)
+                # Reboot EC and wait for DUT to avoid RO_AT_BOOT errors
+                logging.info('Rebooting DUT after WP disable')
+                self.servo.get_power_state_controller().reset()
+                time.sleep(self.servo.BOOT_DELAY)
+                self.test_wait_for_boot()
+
             # Check if copying to DUT is enabled and DUT is available
             if try_scp and self.is_up():
                 # DUT is available, make temp firmware directory to store images
