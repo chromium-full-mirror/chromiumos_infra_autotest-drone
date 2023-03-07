@@ -146,7 +146,7 @@ class CmdError(TestError):
 
         if self.additional_text:
             msg += ", " + self.additional_text
-        msg += '\n' + repr(self.result_obj)
+        msg = '{}\n{}'.format(msg, repr(self.result_obj))
         return msg
 
     def __eq__(self, other):
