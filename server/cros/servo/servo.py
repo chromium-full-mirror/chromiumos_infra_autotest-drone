@@ -1535,22 +1535,22 @@ class Servo(object):
         return image
 
 
-    def extract_ec_image(self, board, model, tarball_path, fake_image=False):
-        """Helper function to extract EC image from downloaded tarball.
+    def get_ec_image_candidate_filenames(self, board, model):
+        """Gets all EC filenames needed for flashing firmware.
 
-        @param board: The DUT board name.
-        @param model: The DUT model name.
-        @param tarball_path: The path of the downloaded build tarball.
-        @param fake_image: True to return a fake zero-filled image instead.
+        Args:
+          board: The DUT board name.
+          model: The DUT model name.
 
-        @return: Path to extracted EC image.
+        Returns:
+          A list of filenames. Use the first one that is found.
         """
 
         # Ignore extracting EC image and re-programming if not a Chrome EC
         chrome_ec = FAFTConfig(board).chrome_ec
         if not chrome_ec:
             logging.warning('Not a Chrome EC, ignore re-programming it')
-            return None
+            return []
 
         # Most boards use the model name as the ec directory.
         ec_image_candidates = ['%s/ec.bin' % model]
@@ -1564,12 +1564,29 @@ class Servo(object):
         try:
             fw_target = self.get_ec_board().lower()
             ec_image_candidates.append('%s/ec.bin' % fw_target)
-        except Exception as err:
+        except Exception:
             logging.warning('Failed to get ec_board value; ignoring')
 
         # Fallback to the name of the board, and then a bare ec.bin.
         ec_image_candidates.append('%s/ec.bin' % board)
         ec_image_candidates.append('ec.bin')
+
+        return ec_image_candidates
+
+    def extract_ec_image(self, board, model, tarball_path):
+        """Helper function to extract EC image from downloaded tarball.
+
+        @param board: The DUT board name.
+        @param model: The DUT model name.
+        @param tarball_path: The path of the downloaded build tarball.
+
+        @return: Path to extracted EC image.
+        """
+
+        ec_image_candidates = self.get_ec_image_candidate_filenames(
+                board, model)
+        if not ec_image_candidates:
+            return None
 
         # Extract EC image from tarball
         dest_dir = os.path.join(os.path.dirname(tarball_path), 'EC')
@@ -1582,21 +1599,9 @@ class Servo(object):
         if ec_image:
             # Extract subsidiary binaries for EC
             # Find a monitor binary for NPCX_UUT chip type, if any.
-            mon_candidates = [candidate.replace('ec.bin', 'npcx_monitor.bin')
-                              for candidate in ec_image_candidates]
+            mon_candidates = [ec_image.replace('ec.bin', 'npcx_monitor.bin')]
             _extract_image_from_tarball(tarball_path, dest_dir, mon_candidates,
                                         self.EXTRACT_TIMEOUT_SECS)
-
-            if fake_image:
-                # Create a small (25% of original size) zero-filled binary to
-                # replace the real ec_image
-                file_size = os.path.getsize(ec_image) / 4
-                ec_image = os.path.join(os.path.dirname(ec_image),
-                                        "zero_ec.bin")
-                dump_cmd = 'dd if=/dev/zero of=%s bs=4096 count=%d' % (
-                        os.path.join(dest_dir, ec_image), file_size / 4096)
-                if server_utils.system(dump_cmd, ignore_status=True) != 0:
-                    return None
 
             return os.path.join(dest_dir, ec_image)
         else:
@@ -1604,14 +1609,15 @@ class Servo(object):
                                   tarball_path)
 
 
-    def extract_bios_image(self, board, model, tarball_path):
-        """Helper function to extract BIOS image from downloaded tarball.
+    def get_bios_image_candidate_filenames(self, board, model):
+        """Gets all BIOS filenames needed for flashing firmware.
 
-        @param board: The DUT board name.
-        @param model: The DUT model name.
-        @param tarball_path: The path of the downloaded build tarball.
+        Args:
+          board: The DUT board name.
+          model: The DUT model name.
 
-        @return: Path to extracted BIOS image.
+        Returns:
+          A list of filenames. Use the first one that is found.
         """
 
         # Most boards use the model name as the image filename.
@@ -1628,12 +1634,26 @@ class Servo(object):
         try:
             fw_target = self.get_ec_board().lower()
             bios_image_candidates.append('image-%s.bin' % fw_target)
-        except Exception as err:
+        except Exception:
             logging.warning('Failed to get ec_board value; ignoring')
 
         # Fallback to the name of the board, and then a bare image.bin.
         bios_image_candidates.append('image-%s.bin' % board)
         bios_image_candidates.append('image.bin')
+        return bios_image_candidates
+
+    def extract_bios_image(self, board, model, tarball_path):
+        """Helper function to extract BIOS image from downloaded tarball.
+
+        @param board: The DUT board name.
+        @param model: The DUT model name.
+        @param tarball_path: The path of the downloaded build tarball.
+
+        @return: Path to extracted BIOS image.
+        """
+
+        bios_image_candidates = self.get_bios_image_candidate_filenames(
+                board, model)
 
         # Extract BIOS image from tarball
         dest_dir = os.path.join(os.path.dirname(tarball_path), 'BIOS')

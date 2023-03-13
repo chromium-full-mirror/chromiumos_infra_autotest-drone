@@ -6,9 +6,11 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import errno
 from io import StringIO
 import json
 
+import datetime
 import logging
 import os
 import re
@@ -50,6 +52,7 @@ from autotest_lib.site_utils.rpm_control_system import rpm_client
 from autotest_lib.site_utils.admin_audit import constants as audit_const
 from autotest_lib.site_utils.admin_audit import verifiers as audit_verify
 from six.moves import zip
+from six.moves import urllib
 
 
 # In case cros_host is being ran via SSP on an older Moblab version with an
@@ -837,10 +840,63 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
         )
 
 
-    def firmware_install(self, build, rw_only=False, dest=None,
-                         local_tarball=None, verify_version=False,
-                         try_scp=False, install_ec=True, install_bios=True,
-                         board_as=None):
+    @staticmethod
+    def _elapsed_time(start):
+        seconds = int(time.time() - start)
+        return str(datetime.timedelta(seconds=seconds))
+
+    def _download_fw_file(self, ds, build, filename, local_filename):
+        """Downloads one file from the firmware tar file.
+
+        Uses the extract feature of the devserver to extract a single file from
+        the firmware_from_source.tar.bz2 file.
+
+        Args:
+          ds: The devserver.
+          build: The path to the build in GCS.
+          filename: The file to extract.
+          local_filename: The destination to write the file.
+
+        Returns:
+          The full path to the local file if it exists, None otherwise.
+        """
+        try:
+            os.mkdir(os.path.dirname(local_filename))
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+        file_url = '%s/extract/chromeos-image-archive/%s/firmware_from_source.tar.bz2?file=%s' % (
+                ds.url(), build, filename)
+        logging.info('Attempting to download %s from %s to %s', filename,
+                     file_url, local_filename)
+        start = time.time()
+        try:
+            ds.download_file(file_url,
+                             local_filename,
+                             timeout=self.DEVSERVER_DOWNLOAD_TIMEOUT)
+            logging.info('Downloaded in %s', self._elapsed_time(start))
+            return local_filename
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                logging.info('%s not found in %s', filename,
+                             self._elapsed_time(start))
+            else:
+                six.raise_from(
+                        error.TestError('Failed to download %s from %s' %
+                                        (local_filename, file_url)), e)
+        return None
+
+    def firmware_install(self,
+                         build,
+                         rw_only=False,
+                         dest=None,
+                         local_tarball=None,
+                         verify_version=False,
+                         try_scp=False,
+                         install_ec=True,
+                         install_bios=True,
+                         board_as=None,
+                         corrupt_ec=False):
         """Install firmware to the DUT.
 
         Use stateful update if the DUT is already running the same build.
@@ -868,6 +924,7 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
         @param install_ec: True to install EC FW, and False to skip it.
         @param install_bios: True to install BIOS, and False to skip it.
         @param board_as: A board name to force to use.
+        @param corrupt_ec: True to flash EC with a false image (for test purpose).
 
         TODO(dshi): After bug 381718 is fixed, update here with corresponding
                     exceptions that could be raised.
@@ -894,10 +951,17 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
             try:
                 model = self.get_platform()
             except Exception as e:
-                logging.warn('Dut is unresponsive: %s', str(e))
+                logging.warning('Dut is unresponsive: %s', str(e))
 
         # If local firmware path not provided fetch it from the dev server
+        ec_candidates = self.servo.get_ec_image_candidate_filenames(
+                board, model)
+        bios_candidates = self.servo.get_bios_image_candidate_filenames(
+                board, model)
+
         tmpd = None
+        ec_image = None
+        bios_image = None
         if not local_tarball:
             logging.info('Will install firmware from build %s.', build)
 
@@ -909,33 +973,68 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                     tmpd = autotemp.tempdir(unique_id='fwimage')
                     dest = tmpd.name
 
-                # Download firmware image
-                fwurl = self._FW_IMAGE_URL_PATTERN % (ds.url(), build)
-                local_tarball = os.path.join(dest, os.path.basename(fwurl))
-                logging.info('Downloading file from %s to %s.', fwurl,
-                             local_tarball)
-                ds.download_file(fwurl,
-                                 local_tarball,
-                                 timeout=self.DEVSERVER_DOWNLOAD_TIMEOUT)
-                logging.info('Done downloading')
+                # Download EC firmware image
+                if install_ec:
+                    for filename in ec_candidates:
+                        local_filename = os.path.join(dest, filename)
+                        ec_image = self._download_fw_file(
+                                ds, build, filename, local_filename)
+                        if ec_image:
+                            # Also download the npcx_monitor.bin file
+                            self._download_fw_file(
+                                    ds, build,
+                                    filename.replace('ec.bin',
+                                                     'npcx_monitor.bin'),
+                                    local_filename.replace(
+                                            'ec.bin', 'npcx_monitor.bin'))
+                            break
+                    else:
+                        raise error.TestError(
+                                'Failed to download EC from any of %s from %s'
+                                % (ec_candidates, build))
+                if install_bios:
+                    for filename in bios_candidates:
+                        local_filename = os.path.join(dest, filename)
+                        bios_image = self._download_fw_file(
+                                ds, build, filename, local_filename)
+                        if bios_image:
+                            break
+                    else:
+                        raise error.TestError(
+                                'Failed to download BIOS from any of %s from %s'
+                                % (ec_candidates, build))
             except Exception as e:
-                raise error.TestError('Failed to download firmware package: %s'
-                                      % str(e))
+                logging.exception("Failed to download firmware package")
+                six.raise_from(
+                        error.TestError(
+                                'Failed to download firmware package: %s' %
+                                str(e)), e)
 
-        ec_image = None
-        if install_ec:
+        if install_ec and not ec_image:
             # Extract EC image from tarball
             logging.info('Extracting EC image.')
+            start = time.time()
             ec_image = self.servo.extract_ec_image(board, model, local_tarball)
-            logging.info('Extracted: %s', ec_image)
+            logging.info('Extracted %s in %s', ec_image,
+                         self._elapsed_time(start))
 
-        bios_image = None
-        if install_bios:
+        if ec_image and corrupt_ec:
+            # Create a small (25% of original size) zero-filled binary to
+            # replace the real ec_image
+            file_size = os.path.getsize(ec_image) / 4
+            ec_image = os.path.join(dest, "zero_ec.bin")
+            dump_cmd = 'dd if=/dev/zero of=%s bs=4096 count=%d' % (
+                    ec_image, file_size / 4096)
+            server_utils.system(dump_cmd, ignore_status=False)
+
+        if install_bios and not bios_image:
             # Extract BIOS image from tarball
             logging.info('Extracting BIOS image.')
+            start = time.time()
             bios_image = self.servo.extract_bios_image(board, model,
                                                        local_tarball)
-            logging.info('Extracted: %s', bios_image)
+            logging.info('Extracted %s in %s', bios_image,
+                         self._elapsed_time(start))
 
         if not bios_image and not ec_image:
             raise error.TestError('No firmware installation was processed.')
@@ -1004,8 +1103,8 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                     if e.result_obj.exit_status != 255:
                         raise
                     elif ec_image:
-                        logging.warn("DUT network dropped during update"
-                                     " (often caused by EC resetting USB)")
+                        logging.warning("DUT network dropped during update"
+                                        " (often caused by EC resetting USB)")
                     else:
                         logging.error("DUT network dropped during update"
                                       " (unexpected, since no EC image)")
@@ -1015,10 +1114,16 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                 dest_bios_path = None
                 dest_ec_path = None
                 if ec_image:
+                    logging.info('Updating EC firmware via servo.')
+                    start = time.time()
                     dest_ec_path = self.servo.program_ec(ec_image, rw_only)
+                    logging.info('Updated in %s', self._elapsed_time(start))
                 if bios_image:
+                    logging.info('Updating AP firmware via servo.')
+                    start = time.time()
                     dest_bios_path = self.servo.program_bios(
                             bios_image, rw_only)
+                    logging.info('Updated in %s', self._elapsed_time(start))
                 if utils.host_is_in_lab_zone(self.hostname):
                     self._add_fw_version_label(build, rw_only)
                 image_bios_version, image_ec_version = self.get_version_from_image(
