@@ -291,7 +291,7 @@ class DeployConfigManager(object):
         modification:
         1. Disable main ssh connection in shadow config, as it is not working
            properly in container yet, and produces noise in the log.
-        2. Update AUTOTEST_WEB/host and SERVER/hostname to be the IP of the host
+        2. Update SERVER/hostname to be the IP of the host
            if any is set to localhost or 127.0.0.1. Otherwise, set it to be the
            FQDN of the config value.
         3. Update SSP/user, which is used as the user makes RPC inside the
@@ -310,14 +310,6 @@ class DeployConfigManager(object):
 
         host_ip = lxc_utils.get_host_ip()
         local_names = ['localhost', '127.0.0.1']
-
-        db_host = config.get_config_value('AUTOTEST_WEB', 'host')
-        if db_host.lower() in local_names:
-            new_host = host_ip
-        else:
-            new_host = socket.getfqdn(db_host)
-        self.container.attach_run('echo $\'\n[AUTOTEST_WEB]\nhost: %s\n\' >> %s'
-                                  % (new_host, shadow_config))
 
         afe_host = config.get_config_value('SERVER', 'hostname')
         if afe_host.lower() in local_names:
@@ -405,7 +397,7 @@ class DeployConfigManager(object):
             self._deploy_config_post_start(deploy_config)
         # Autotest shadow config requires special handling to update hostname
         # of `localhost` with host IP. Shards always use `localhost` as value
-        # of SERVER\hostname and AUTOTEST_WEB\host.
+        # of SERVER\hostname.
         self._modify_shadow_config()
         # Only apply special treatment for files deployed by the default
         # ssp_deploy_config
