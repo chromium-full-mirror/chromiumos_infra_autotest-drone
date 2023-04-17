@@ -10,7 +10,7 @@ from autotest_lib.client.common_lib import error
 
 # USB ID for the virtual U2F HID Device.
 U2F_VID = '18D1'
-U2F_PID = '502C'
+U2F_PID = '5212'
 
 QUERY_U2F_DEVICE_ATTEMPTS=5
 QUERY_U2F_RETRY_DELAY_SEC=1
@@ -38,8 +38,7 @@ def StartU2fd(client):
       try:
         return '/dev/' + client.run('ls ' + path).stdout.strip()
       except error.AutoservRunError as e:
-        logging.info('Could not find U2F device on attempt ' +
-                     str(attempts))
+        logging.info('Could not find U2F device on attempt %d.', attempts)
       time.sleep(QUERY_U2F_RETRY_DELAY_SEC)
 
 def G2fRegister(client, dev, challenge, application, p1=0):

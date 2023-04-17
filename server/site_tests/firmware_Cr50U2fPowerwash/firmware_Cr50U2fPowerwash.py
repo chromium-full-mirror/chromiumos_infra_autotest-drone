@@ -48,6 +48,9 @@ class firmware_Cr50U2fPowerwash(FirmwareTest):
         # through OOBE. Force it to startup.
         cr50_dev = g2f_utils.StartU2fd(self.client)
 
+        if cr50_dev is None:
+          raise error.TestError('Could not find U2F device.')
+
         # Register requires physical presence.
         self._safe_power_short_press()
 
@@ -91,6 +94,9 @@ class firmware_Cr50U2fPowerwash(FirmwareTest):
         # U2fd does will not start normally if the device has not gone
         # through OOBE. Force it to startup.
         cr50_dev = g2f_utils.StartU2fd(self.client)
+
+        if cr50_dev is None:
+          raise error.TestError('Could not find U2F device.')
 
         # Check the key handle is no longer valid.
         self._safe_power_short_press()
