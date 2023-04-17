@@ -480,11 +480,6 @@ def define_tests():
             main_package = '',
         ),
         test_common.define_test(
-            'firmware/IntegratedU2F',
-            suites = ['faft_cr50_experimental'],
-            main_package = '',
-        ),
-        test_common.define_test(
             'firmware/InvalidUSB',
             suites = ['faft_bios', 'faft_bios_ec3po', 'faft_bios_ro_qual', 'faft_bios_rw_qual', 'faft_bios_tot', 'faft_lv4', 'faft_normal'],
             main_package = '',
