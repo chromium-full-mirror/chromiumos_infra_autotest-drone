@@ -3361,3 +3361,24 @@ def crc8(buf):
     for i in buf:
         rv = _table_crc8[ (rv ^ i) & 0xff ]
     return rv
+
+
+def get_swarming_task_id():
+    """Get the current Swamring task ID or 'none'."""
+    return os.environ.get('SWARMING_TASK_ID', 'none')
+
+
+def get_build_bucket_id():
+    """Get the current build bucket ID or 'none'.
+
+    There's no straightforward way to get the BBID, so we have to check another
+    environment variable, i.e., 'LOGDOG_STREAM_PREFIX' which is like
+    'buildbucket/cr-buildbucket/<bbid>'.
+    """
+    value = os.environ.get('LOGDOG_STREAM_PREFIX')
+    if not value:
+        return 'none'
+    elements = value.split('/')
+    if len(elements) < 3:
+        return 'none'
+    return elements[2]

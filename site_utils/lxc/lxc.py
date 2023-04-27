@@ -87,7 +87,11 @@ def download_extract(url, target, extract_dir):
 def _download_via_curl(url, target_file_path):
     # We do not want to retry on CmdTimeoutError but still retry on
     # CmdError. Hence we can't use curl --timeout=...
-    common_utils.run('sudo curl -s %s -o %s' % (url, target_file_path),
+    common_utils.run('sudo curl -s -H X-SWARMING-TASK-ID:%s '
+                     '-H X-BBID:%s '
+                     '%s -o %s' % (common_utils.get_swarming_task_id(),
+                                   common_utils.get_build_bucket_id(),
+                                   url, target_file_path),
                      stderr_tee=common_utils.TEE_TO_LOGS, timeout=3*60)
 
 
