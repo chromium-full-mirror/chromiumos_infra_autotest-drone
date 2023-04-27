@@ -13,7 +13,6 @@ import tempfile
 import common
 from autotest_lib.client.bin import utils as common_utils
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.common_lib.cros import dev_server
 from autotest_lib.client.common_lib.cros import retry
 from autotest_lib.server import utils as server_utils
 from autotest_lib.site_utils.lxc import constants
