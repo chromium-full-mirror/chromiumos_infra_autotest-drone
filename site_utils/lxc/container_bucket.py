@@ -10,6 +10,7 @@ import common
 
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import utils as common_utils
 from autotest_lib.site_utils.lxc import config as lxc_config
 from autotest_lib.site_utils.lxc import constants
 from autotest_lib.site_utils.lxc import lxc
@@ -306,6 +307,9 @@ class ContainerBucket(object):
         utils.run('sudo chgrp -R root "%s"' % autotest_path)
 
         container.limit_resource(resource_limits)
+        container.set_environment(
+                SWARMING_TASK_ID=common_utils.get_swarming_task_id(),
+                BUILD_BUCKET_ID=common_utils.get_build_bucket_id())
 
         container.start(wait_for_network=True, log_dir=result_path)
         deploy_config_manager.deploy_post_start()

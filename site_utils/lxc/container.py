@@ -487,6 +487,11 @@ class Container(object):
         for k, v in resource_limits.items():
             self._set_lxc_config('lxc.cgroup.%s' % k, v)
 
+    def set_environment(self, **kwargs):
+        """Set extra environment for the LXC container."""
+        for k, v in kwargs.items():
+            self._set_lxc_config('lxc.environment', '%s=%s' % (k, v))
+
     def modify_import_order(self):
         """Swap the python import order of lib and local/lib.
 
