@@ -1552,8 +1552,12 @@ class Servo(object):
             logging.warning('Not a Chrome EC, ignore re-programming it')
             return []
 
-        # Most boards use the model name as the ec directory.
-        ec_image_candidates = ['%s/ec.bin' % model]
+        # Most boards use the model name as the ec directory, sometimes with a
+        # 0 suffix.
+        ec_image_candidates = [
+                '%s/ec.bin' % model,
+                '%s0/ec.bin' % model,
+        ]
 
         if model == "dragonair":
             ec_image_candidates.append('dratini/ec.bin')
@@ -1620,9 +1624,11 @@ class Servo(object):
           A list of filenames. Use the first one that is found.
         """
 
-        # Most boards use the model name as the image filename.
+        # Most boards use the model name as the image filename, sometimes with
+        # a 0 suffix.
         bios_image_candidates = [
                 'image-%s.bin' % model,
+                'image-%s0.bin' % model,
         ]
 
         if model == "dragonair":
