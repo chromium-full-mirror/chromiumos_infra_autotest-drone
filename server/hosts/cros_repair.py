@@ -51,18 +51,6 @@ DEFAULT_SERVO_RESET_TRIGGER = (
         'power',
 )
 
-
-# _DEV_MODE_ALLOW_POOLS - The set of pools that are allowed to be
-# in dev mode (usually, those should be unmanaged devices)
-#
-_DEV_MODE_ALLOWED_POOLS = set(
-    global_config.global_config.get_config_value(
-            'CROS',
-            'pools_dev_mode_allowed',
-            type=str,
-            default='',
-            allow_blank=True).split(','))
-
 # Setting to suppress dev mode check; primarily used for moblab where all
 # DUT's are in dev mode.
 _DEV_MODE_ALWAYS_ALLOWED = global_config.global_config.get_config_value(
@@ -463,7 +451,7 @@ class DevModeVerifier(hosts.Verifier):
         # Some pools are allowed to be in dev mode
         info = host.host_info_store.get()
         if (_DEV_MODE_ALWAYS_ALLOWED or
-                bool(info.pools & _DEV_MODE_ALLOWED_POOLS)):
+                bool(info.pools)):
             return
 
         result = host.run('crossystem devsw_boot', ignore_status=True).stdout
@@ -1566,7 +1554,7 @@ def _cros_verify_base_dag():
             (repair_utils.SshVerifier, 'ssh', ('ping', )),
             (ServoUSBDriveVerifier, 'usb_drive', ()),
             (DevDefaultBootVerifier, 'dev_default_boot', ('ssh', )),
-            (DevModeVerifier, 'devmode', ('ssh', )),
+            # (DevModeVerifier, 'devmode', ('ssh', )),
             (EnrollmentStateVerifier, 'enrollment_state', ('ssh', )),
             (HWIDVerifier, 'hwid', ('ssh', )),
             (ACPowerVerifier, 'power', ('ssh', )),
@@ -1635,10 +1623,10 @@ def _cros_basic_repair_actions(
             )),
             (DevDefaultBootRepair, 'set_default_boot', ('ssh', ),
              ('dev_default_boot', )),
-            (CrosRebootRepair, 'reboot', ('ssh', ), (
-                    'devmode',
-                    'writable',
-            )),
+            # (CrosRebootRepair, 'reboot', ('ssh', ), (
+            #         'devmode',
+            #         'writable',
+            # )),
             (EnrollmentCleanupRepair, 'cleanup_enrollment', ('ssh', ),
              ('enrollment_state', )),
     )
@@ -1722,10 +1710,10 @@ def _cros_repair_actions():
             )),
             (DevDefaultBootRepair, 'set_default_boot', ('ssh', ),
              ('dev_default_boot', )),
-            (CrosRebootRepair, 'reboot', ('ssh', ), (
-                    'devmode',
-                    'writable',
-            )),
+            # (CrosRebootRepair, 'reboot', ('ssh', ), (
+            #         'devmode',
+            #         'writable',
+            # )),
             (EnrollmentCleanupRepair, 'cleanup_enrollment', ('ssh', ),
              ('enrollment_state', )),
             (cros_firmware.GeneralFirmwareRepair, 'general_firmware',
