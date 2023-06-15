@@ -200,11 +200,6 @@ def define_tests():
             main_package = 'autotest_lib.client.site_tests.hardware_TrimIntegrity.hardware_TrimIntegrity',
         ),
         test_common.define_test(
-            'hardware/UnsafeMemory',
-            suites = [],
-            main_package = 'autotest_lib.client.site_tests.hardware_UnsafeMemory.hardware_UnsafeMemory',
-        ),
-        test_common.define_test(
             'hardware/Usb30Throughput',
             suites = [],
             main_package = 'autotest_lib.client.site_tests.hardware_Usb30Throughput.hardware_Usb30Throughput',
