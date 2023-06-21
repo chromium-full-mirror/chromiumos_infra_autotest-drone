@@ -405,30 +405,21 @@ class BiosServicer(object):
         """
         return self._bios_handler.strip_modified_fwids()
 
-    def set_write_protect_region(self, region, enabled=None):
-        """Modify software write protect region and flag in one operation.
+    def set_write_protect(self, enable):
+        """Enable or disable AP SPI flash write protection..
 
-        @param region: Region to set (usually WP_RO)
-        @param enabled: If True, run --wp-enable; if False, run --wp-disable.
-                        If None (default), don't specify either one.
+        @param enable: True to enable WP, False to disable WP.
         """
-        self._bios_handler.set_write_protect_region(region, enabled)
-
-    def set_write_protect_range(self, start, length, enabled=None):
-        """Modify software write protect range and flag in one operation.
-
-        @param start: offset (bytes) from start of flash to start of range
-        @param length: offset (bytes) from start of range to end of range
-        @param enabled: If True, run --wp-enable; if False, run --wp-disable.
-                        If None (default), don't specify either one.
-        """
-        self._bios_handler.set_write_protect_range(start, length, enabled)
+        if enable:
+            self._bios_handler.enable_write_protect()
+        else:
+            self._bios_handler.disable_write_protect()
 
     def get_write_protect_status(self):
-        """Get a dict describing the status of the write protection
+        """Get a bool describing the status of the write protection.
 
-        @return: {'enabled': True/False, 'start': '0x0', 'length': '0x0', ...}
-        @rtype: dict
+        @return: True if WP is enabled, False if WP is disabled
+        @rtype: bool
         """
         return self._bios_handler.get_write_protect_status()
 

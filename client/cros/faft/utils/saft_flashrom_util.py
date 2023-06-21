@@ -19,8 +19,6 @@ Currently the tool supports multiple partial write but not partial read.
 In the saft_flashrom_util, we provide read and partial write abilities.
 For more information, see help(saft_flashrom_util.flashrom_util).
 """
-import re
-import logging
 
 
 class TestError(Exception):
@@ -182,23 +180,18 @@ class flashrom_util(object):
         @type keep_temp_files: bool
         @type target_is_ec: bool
         """
-
         self.os_if = os_if
         self.keep_temp_files = keep_temp_files
         self.firmware_layout = {}
-        self._target_command = ''
-        if target_is_ec:
-            self._enable_ec_access()
-        else:
-            self._enable_bios_access()
+        self._target_is_ec = target_is_ec
 
-    def _enable_bios_access(self):
-        if self.os_if.test_mode or self.os_if.target_hosted():
-            self._target_command = '-p host'
-
-    def _enable_ec_access(self):
-        if self.os_if.test_mode or self.os_if.target_hosted():
-            self._target_command = '-p ec'
+    @property
+    def _target_command(self):
+        """
+        Generates programmer name to use with flashrom commands, this should be
+        deleted once flashrom commands are fully replaced with futility/ectool.
+        """
+        return '-p ec' if self._target_is_ec else '-p host'
 
     def _get_temp_filename(self, prefix):
         """Returns name of a temporary file in /tmp."""
@@ -295,106 +288,38 @@ class flashrom_util(object):
 
     def enable_write_protect(self):
         """Enable the write protection of the flash chip."""
-
-        # For MTD devices, this will fail: need both --wp-range and --wp-enable.
-        # See: https://crrev.com/c/275381
-
-        cmd = 'flashrom %s --verbose --wp-enable' % self._target_command
+        if self._target_is_ec:
+            cmd = 'ectool flashprotect enable now'
+        else:
+            cmd = 'futility flash --wp-enable'
         self.os_if.run_shell_command(cmd, modifies_device=True)
 
     def disable_write_protect(self):
         """Disable the write protection of the flash chip."""
-        cmd = 'flashrom %s --verbose --wp-disable' % self._target_command
-        self.os_if.run_shell_command(cmd, modifies_device=True)
-
-    def set_write_protect_region(self, image_file, region, enabled=None):
-        """
-        Set write protection region, using specified image's layout.
-
-        The name should match those seen in `futility dump_fmap <image>`, and
-        is not checked against self.firmware_layout, due to different naming.
-
-        @param image_file: path of the image file to read regions from
-        @param region: Region to set (usually WP_RO)
-        @param enabled: if True, run --wp-enable; if False, run --wp-disable.
-        """
-        cmd = 'flashrom %s --verbose --image %s:%s --wp-region %s' % (
-                self._target_command, region, image_file, region)
-        if enabled is not None:
-            cmd += ' '
-            cmd += '--wp-enable' if enabled else '--wp-disable'
-
-        self.os_if.run_shell_command(cmd, modifies_device=True)
-
-    def set_write_protect_range(self, start, length, enabled=None):
-        """
-        Set write protection range by offset, using current image's layout.
-
-        @param start: offset (bytes) from start of flash to start of range
-        @param length: offset (bytes) from start of range to end of range
-        @param enabled: If True, run --wp-enable; if False, run --wp-disable.
-                        If None (default), don't specify either one.
-        """
-        cmd = 'flashrom %s --verbose --wp-range %s,%s' % (
-                self._target_command, start, length)
-        if enabled is not None:
-            cmd += ' '
-            cmd += '--wp-enable' if enabled else '--wp-disable'
-
+        if self._target_is_ec:
+            cmd = 'ectool flashprotect disable'
+        else:
+            cmd = 'futility flash --wp-disable'
         self.os_if.run_shell_command(cmd, modifies_device=True)
 
     def get_write_protect_status(self):
-        """Get a dict describing the status of the write protection
+        """Get a bool describing the status of the write protection.
 
-        @return: {'enabled': True/False, 'start': '0x0', 'length': '0x0', ...}
-        @rtype: dict
+        @return: True if WP is enabled, False if WP is disabled
+        @rtype: bool
         """
-        # https://crrev.com/8ebbd500b5d8da9f6c1b9b44b645f99352ef62b4/writeprotect.c
-
-        status_pattern = re.compile(
-                r'WP: status: (.*)')
-        enabled_pattern = re.compile(
-                r'WP: write protect is (\w+)\.?')
-        range_pattern = re.compile(
-                r'WP: write protect range: start=(\w+), len=(\w+)')
-        range_err_pattern = re.compile(
-                r'WP: write protect range: (.+)')
-
-        output = self.os_if.run_shell_command_get_output(
-                'flashrom %s --wp-status' % self._target_command)
-        logging.debug('`flashrom %s --wp-status` returned %s',
-                      self._target_command, output)
-
-        wp_status = {}
-        for line in output:
-            if not line.startswith('WP: '):
-                continue
-
-            found_enabled = re.match(enabled_pattern, line)
-            if found_enabled:
-                status_word = found_enabled.group(1)
-                wp_status['enabled'] = (status_word == 'enabled')
-                continue
-
-            found_range = re.match(range_pattern, line)
-            if found_range:
-                (start, length) = found_range.groups()
-                wp_status['start'] = int(start, 16)
-                wp_status['length'] = int(length, 16)
-                continue
-
-            found_range_err = re.match(range_err_pattern, line)
-            if found_range_err:
-                # WP: write protect range: (cannot resolve the range)
-                wp_status['error'] = found_range_err.group(1)
-                continue
-
-            found_status = re.match(status_pattern, line)
-            if found_status:
-                wp_status['status'] = found_status.group(1)
-                continue
-
-        return wp_status
+        if self._target_is_ec:
+            cmd = 'ectool flashprotect'
+            ec_status = self.os_if.run_shell_command_get_output(cmd)
+            active_flags_line = [
+                    l for l in ec_status if l.startswith("Flash protect flags")
+            ]
+            active_flags = active_flags_line[0].split()
+            return ('ro_now' in active_flags or 'all_now' in active_flags)
+        else:
+            cmd = 'futility flash --wp-status --ignore-hw'
+            status = self.os_if.run_shell_command_get_output(cmd)
+            return 'enabled' in status[0]
 
     def dump_flash(self, filename):
         """Read the flash device's data into a file, but don't parse it."""

@@ -606,58 +606,11 @@ class FlashromHandler(object):
         with _FlashromErrorWrapper(description):
             self.fum.disable_write_protect()
 
-    def set_write_protect_region(self, region, enabled=None):
-        """
-        Set write protection region by name, using current image's layout.
-
-        The name should match those seen in `futility dump_fmap <image>`, and
-        is not checked against self.firmware_layout, due to different naming.
-
-        @param region: Region to set (usually WP_RO)
-        @param enabled: If True, run --wp-enable; if False, run --wp-disable.
-                        If None (default), don't specify either one.
-        """
-        if region is None:
-            raise FlashromHandlerError("Region must not be None")
-        image_file = self.os_if.create_temp_file('wp_')
-        self.os_if.write_file(image_file, self.image)
-
-        if enabled is None:
-            verb = 'set'
-        else:
-            verb = 'enable' if enabled else 'disable'
-        msg = 'Failed to %s %s write-protect region (%s)' % (
-            verb, self.target, region)
-
-        with _FlashromErrorWrapper(msg):
-            self.fum.set_write_protect_region(image_file, region, enabled)
-
-        self.os_if.remove_file(image_file)
-
-    def set_write_protect_range(self, start, length, enabled=None):
-        """
-        Set write protection range by offsets, using current image's layout.
-
-        @param start: offset (bytes) from start of flash to start of range
-        @param length: offset (bytes) from start of range to end of range
-        @param enabled: If True, run --wp-enable; if False, run --wp-disable.
-                        If None (default), don't specify either one.
-        """
-        if enabled is None:
-            verb = 'set'
-        else:
-            verb = 'enable' if enabled else 'disable'
-        msg = 'Failed to %s %s write-protect range (start=%s, length=%s)' % (
-            verb, self.target, start, length)
-
-        with _FlashromErrorWrapper(msg):
-            self.fum.set_write_protect_range(start, length, enabled)
-
     def get_write_protect_status(self):
-        """Get a dict describing the status of the write protection
+        """Get a bool describing the status of the write protection.
 
-        @return: {'enabled': True/False, 'start': '0x0', 'length': '0x0', ...}
-        @rtype: dict
+        @return: True if WP is enabled, False if WP is disabled
+        @rtype: bool
         """
         return self.fum.get_write_protect_status()
 
