@@ -461,9 +461,9 @@ def install_firmware(host):
     logging.info("Started install firmware on the DUT.")
     # Disable software-controlled write-protect for both FPROMs, and
     # install the RO firmware.
-    for fprom in ['host', 'ec']:
-        host.run('flashrom -p %s --wp-disable' % fprom,
-                 ignore_status=True)
+
+    host.run('futility flash --wp-disable', ignore_status=True)
+    host.run('ectool flashprotect disable', ignore_status=True)
 
     fw_update_log = '/mnt/stateful_partition/home/root/cros-fw-update.log'
     pid = _start_firmware_update(host, fw_update_log)
