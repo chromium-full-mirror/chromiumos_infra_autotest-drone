@@ -958,6 +958,8 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                 board, model)
         bios_candidates = self.servo.get_bios_image_candidate_filenames(
                 board, model)
+        if not ec_candidates:
+            install_ec = False
 
         tmpd = None
         ec_image = None
