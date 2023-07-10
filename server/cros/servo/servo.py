@@ -1568,6 +1568,8 @@ class Servo(object):
             ec_image_candidates.append('dratini/ec.bin')
         if model == "kled":
             ec_image_candidates.append('kindred/ec.bin')
+        if model == "volta":
+            ec_image_candidates.append('voxel/ec.bin')
 
         # If that isn't found try the name from the EC RO version.
         try:
@@ -1640,6 +1642,8 @@ class Servo(object):
             bios_image_candidates.append('image-dratini.bin')
         if model == "kled":
             bios_image_candidates.append('image-kindred.bin')
+        if model == "volta":
+            bios_image_candidates.append('image-voxel.bin')
 
         # If that isn't found try the name from the EC RO version.
         try:
