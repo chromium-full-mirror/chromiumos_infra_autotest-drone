@@ -200,6 +200,11 @@ class HttpFetcher(RepositoryFetcher):
 
         # try to retrieve the package via http
         package_url = os.path.join(self.url, filename)
+        gs_bucket = global_config.global_config.get_config_value(
+                'CROS', 'image_storage_server', type=str, default=None)
+        if gs_bucket and gs_bucket.startswith('gs://'):
+            package_url = '%s?gs_bucket=%s' % (
+                    package_url, gs_bucket[len('gs://'):].rstrip('/'))
         try:
             cmd = self.curl_cmd_pattern % (package_url, dest_path)
             result = self.run_command(cmd,
