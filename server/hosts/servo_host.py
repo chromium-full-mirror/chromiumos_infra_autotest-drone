@@ -1516,7 +1516,7 @@ class ServoHost(base_servohost.BaseServoHost):
         init_servo = self.get_verifier_state('servod_control')
         cr50_low_sbu = self.get_verifier_state('servo_cr50_low_sbu')
         cr50_off = self.get_verifier_state('servo_cr50_off')
-        servo_topology = self.get_verifier_state('servo_topology')
+        # servo_topology = self.get_verifier_state('servo_topology')
         dut_connected = self.get_verifier_state('servo_dut_connected')
         hub_connected = self.get_verifier_state('servo_hub_connected')
         pwr_button = self.get_verifier_state('servo_pwr_button')
@@ -1557,8 +1557,8 @@ class ServoHost(base_servohost.BaseServoHost):
 
         if servod_dut_controller_missing == hosts.VERIFY_FAILED:
             return servo_constants.SERVO_STATE_SERVOD_DUT_CONTROLLER_MISSING
-        if servo_topology == hosts.VERIFY_FAILED:
-            return servo_constants.SERVO_STATE_TOPOLOGY_ISSUE
+        # if servo_topology == hosts.VERIFY_FAILED:
+        #    return servo_constants.SERVO_STATE_TOPOLOGY_ISSUE
 
         # TODO(otabek@): detect special cases detected by pwr_button
         if dut_connected == hosts.VERIFY_SUCCESS:

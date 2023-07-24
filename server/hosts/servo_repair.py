@@ -1475,7 +1475,6 @@ def _servo_verifier_actions():
                     'servo_config_serial', 'servo_disk_space'
             ]),
             (_ServodEchoVerifier, 'servod_echo', ['servod_started']),
-            (_TopologyVerifier, 'servo_topology', ['servod_echo']),
             (_ServodConnectionVerifier, 'servod_connection', ['servod_echo']),
             (_Cr50LowSBUVerifier, 'servo_cr50_low_sbu', ['servod_connection']),
             (ServodDutControllerMissingVerifier,
@@ -1505,29 +1504,24 @@ def _servo_repair_actions():
     """
     config = ['servo_config_board', 'servo_config_serial', 'start_servod']
     base_triggers = [
-            'servod_started', 'servo_topology', 'servod_connection',
-            'servod_echo', 'servod_control', 'servo_dut_connected',
-            'servo_hub_connected', 'servo_pwr_button', 'servo_cr50_console',
-            'servo_cr50_low_sbu', 'servo_cr50_off', 'servo_power_delivery',
+            'servod_started', 'servod_connection', 'servod_echo',
+            'servod_control', 'servo_dut_connected', 'servo_hub_connected',
+            'servo_pwr_button', 'servo_cr50_console', 'servo_cr50_low_sbu',
+            'servo_cr50_off', 'servo_power_delivery',
             'servod_dut_controller_missing'
     ]
     dut_triggers = [
             'servod_control', 'servo_lid_open', 'servo_ec_console',
-            'servo_topology', 'servo_dut_connected', 'servo_hub_connected',
-            'servo_cr50_low_sbu', 'servo_cr50_off', 'servo_cr50_console',
-            'servo_power_delivery', 'servod_dut_controller_missing'
+            'servo_dut_connected', 'servo_hub_connected', 'servo_cr50_low_sbu',
+            'servo_cr50_off', 'servo_cr50_console', 'servo_power_delivery',
+            'servod_dut_controller_missing'
     ]
     reboot_triggers = [
-            'servo_topology', 'servo_root_present', 'servo_disk_space',
-            'servo_power_delivery'
+            'servo_root_present', 'servo_disk_space', 'servo_power_delivery'
     ]
     return (
-            (_ServoFwUpdateRepair, 'servo_fw_update', ['connection'],
-             ['servo_fw']),
             (_DiskCleanupRepair, 'servo_disk_cleanup', ['connection'],
              ['servo_disk_space']),
-            (_ServoMicroFlashRepair, 'servo_micro_flash',
-             ['connection', 'servo_topology'], ['servo_dut_connected']),
             (_RestartServod, 'servod_restart', ['connection', 'servo_fw'],
              config + base_triggers),
             (_ServoRebootRepair, 'servo_reboot', ['connection'],
