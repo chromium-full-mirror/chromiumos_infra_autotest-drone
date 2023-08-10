@@ -10,7 +10,7 @@ set -eu
 
 CROS_CONFIG_REPO="https://chromium.googlesource.com/chromiumos/config"
 
-CIPD_PROTOC_VERSION='v3.6.1'
+CIPD_PROTOC_VERSION='v3.17.0'
 CIPD_PROTOC_GEN_GO_VERSION='v1.3.2'
 
 readonly script_dir="$(dirname "$(realpath -e "${BASH_SOURCE[0]}")")"
