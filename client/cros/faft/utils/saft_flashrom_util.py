@@ -191,7 +191,7 @@ class flashrom_util(object):
         Generates programmer name to use with flashrom commands, this should be
         deleted once flashrom commands are fully replaced with futility/ectool.
         """
-        return '-p ec' if self._target_is_ec else '-p host'
+        return '-p ec' if self._target_is_ec else '-p internal'
 
     def _get_temp_filename(self, prefix):
         """Returns name of a temporary file in /tmp."""

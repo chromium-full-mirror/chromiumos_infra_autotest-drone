@@ -230,7 +230,7 @@ class FlashromHandler(object):
                 self.fum.check_target()
                 self._available = True
             except error.CmdError as e:
-                # First line: "Command <flashrom -p host> failed, rc=2"
+                # First line: "Command <flashrom -p internal> failed, rc=2"
                 self._unavailable_err = str(e).split('\n', 1)[0]
                 self._available = False
         return self._available

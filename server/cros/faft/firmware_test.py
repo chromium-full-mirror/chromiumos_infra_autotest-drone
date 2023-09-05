@@ -265,7 +265,7 @@ class FirmwareTest(test.test):
         # Check flashrom before first use, to avoid xmlrpclib.Fault.
         if not self.faft_client.bios.is_available():
             raise error.TestError(
-                    "flashrom is broken; check 'flashrom -p host'"
+                    "flashrom is broken; check 'flashrom -p internal'"
                     "and rpc server log.")
 
         self._setup_gbb_flags()
