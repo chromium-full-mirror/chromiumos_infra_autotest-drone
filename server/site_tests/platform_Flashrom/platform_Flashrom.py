@@ -46,7 +46,7 @@ class platform_Flashrom(FirmwareTest):
 
     def _check_wp_disable(self):
         """Check firmware is write protect disabled."""
-        self.run_cmd('flashrom -p host --wp-status', checkfor='is disabled')
+        self.run_cmd('flashrom -p internal --wp-status', checkfor='is disabled')
         if self.faft_config.chrome_ec:
             self.run_cmd('flashrom -p ec --wp-status', checkfor='is disabled')
         if self.faft_config.chrome_usbpd:
