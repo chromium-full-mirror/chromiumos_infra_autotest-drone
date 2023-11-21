@@ -16,7 +16,6 @@
     "system.display"
   ],
   "automation": {
-    "interact": true,
     "desktop": true
   }
 }
