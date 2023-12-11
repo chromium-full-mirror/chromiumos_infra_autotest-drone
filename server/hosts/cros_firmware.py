@@ -134,24 +134,18 @@ class FirmwareStatusVerifier(hosts.Verifier):
         if not _is_firmware_testing_device(host):
             return
         try:
-            # Read the AP firmware and dump the sections that we're
-            # interested in.
+            # Read the AP firmware.
             cmd = ('mkdir /tmp/verify_firmware; '
-                   'cd /tmp/verify_firmware; '
-                   'for section in VBLOCK_A VBLOCK_B FW_MAIN_A FW_MAIN_B; '
-                   'do flashrom -p internal -r -i $section:$section; '
-                   'done')
+                   'flashrom -p internal -r /tmp/verify_firmware/ap.bin')
             host.run(cmd)
 
-            # Verify the firmware blocks A and B.
-            cmd = ('vbutil_firmware --verify /tmp/verify_firmware/VBLOCK_%c'
-                   ' --signpubkey /usr/share/vboot/devkeys/root_key.vbpubk'
-                   ' --fv /tmp/verify_firmware/FW_MAIN_%c')
-            for c in ('A', 'B'):
-                rv = host.run(cmd % (c, c), ignore_status=True)
-                if rv.exit_status:
-                    raise hosts.AutoservVerifyError(
-                            'Firmware %c is in a bad state.' % c)
+            # Verify the full AP firmware.
+            cmd = ('futility verify --publickey '
+                   '/usr/share/vboot/devkeys/root_key.vbpubk '
+                   '/tmp/verify_firmware/ap.bin')
+            rv = host.run(cmd, ignore_status=True)
+            if rv.exit_status:
+                raise hosts.AutoservVerifyError('Firmware is in a bad state.')
         finally:
             # Remove the temporary files.
             host.run('rm -rf /tmp/verify_firmware')
