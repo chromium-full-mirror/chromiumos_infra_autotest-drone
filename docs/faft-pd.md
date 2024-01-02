@@ -107,10 +107,10 @@ prerequisite.
 ## How to run PD FAFT {#how-to-run-pd-faft}
 
 Hardware setup, check this
-[ServoV4 Type-C with servo micro setup](https://chromium.googlesource.com/chromiumos/third_party/autotest/+/refs/heads/master/docs/faft-how-to-run-doc.md#servov4-typec-micro).
+[ServoV4 Type-C with servo micro setup](https://chromium.googlesource.com/chromiumos/third_party/autotest/+/HEAD/docs/faft-how-to-run-doc.md#servov4-typec-micro).
 
 Software setup, check this
-[Running Tests instructions](https://chromium.googlesource.com/chromiumos/third_party/autotest/+/refs/heads/master/docs/faft-how-to-run-doc.md#faft-running-tests).
+[Running Tests instructions](https://chromium.googlesource.com/chromiumos/third_party/autotest/+/HEAD/docs/faft-how-to-run-doc.md#faft-running-tests).
 
 ## Known issues {#known-issues}
 

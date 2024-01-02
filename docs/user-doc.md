@@ -244,7 +244,7 @@ When running tests, fundamentally, you want to either:
 ### Running tests on a machine
 
 Autotests are run with a tool called
-[test_that](https://chromium.googlesource.com/chromiumos/third_party/autotest/+/refs/heads/master/docs/test-that.md).
+[test_that](https://chromium.googlesource.com/chromiumos/third_party/autotest/+/HEAD/docs/test-that.md).
 
 ### Running tests in a VM - cros_run_test
 

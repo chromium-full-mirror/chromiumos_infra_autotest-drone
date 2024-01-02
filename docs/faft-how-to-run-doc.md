@@ -303,14 +303,14 @@ Q: Can I compare the results obtained with a Type-C servo to those obtained with
 
 - A: When running tests with a Type-C servo, it is recommended to to rerun a failure using the Type-A setup to do a fast check prior to digging deeper, i.e. before connecting a USB analyzer or probing the signals.
 
-[FAFT suite]: https://chromium.googlesource.com/chromiumos/third_party/autotest/+/master/server/site_tests/
-[servo]: https://chromium.googlesource.com/chromiumos/third_party/hdctools/+/refs/heads/master/README.md#Power-Measurement
-[servo v2]: https://chromium.googlesource.com/chromiumos/third_party/hdctools/+/refs/heads/master/docs/servo_v2.md
-[servo v4]: https://chromium.googlesource.com/chromiumos/third_party/hdctools/+/refs/heads/master/docs/servo_v4.md
-[servo micro]: https://chromium.googlesource.com/chromiumos/third_party/hdctools/+/refs/heads/master/docs/servo_micro.md
-[servo v4 Type-C]: https://chromium.googlesource.com/chromiumos/third_party/hdctools/+/refs/heads/master/docs/servo_v4.md#Type_C-Version
+[FAFT suite]: https://chromium.googlesource.com/chromiumos/third_party/autotest/+/HEAD/server/site_tests/
+[servo]: https://chromium.googlesource.com/chromiumos/third_party/hdctools/+/HEAD/README.md#Power-Measurement
+[servo v2]: https://chromium.googlesource.com/chromiumos/third_party/hdctools/+/HEAD/docs/servo_v2.md
+[servo v4]: https://chromium.googlesource.com/chromiumos/third_party/hdctools/+/HEAD/docs/servo_v4.md
+[servo micro]: https://chromium.googlesource.com/chromiumos/third_party/hdctools/+/HEAD/docs/servo_micro.md
+[servo v4 Type-C]: https://chromium.googlesource.com/chromiumos/third_party/hdctools/+/HEAD/docs/servo_v4.md#Type_C-Version
 [stateful partition is too small]: https://crrev.com/c/1935408
-[FAFT]: https://chromium.googlesource.com/chromiumos/third_party/autotest/+/refs/heads/master/docs/faft-design-doc.md
-[FAFT framework]: https://chromium.googlesource.com/chromiumos/third_party/autotest/+/refs/heads/master/docs/faft-code.md
-[servod]: https://chromium.googlesource.com/chromiumos/third_party/hdctools/+/refs/heads/master/docs/servod.md
-[test that]: https://chromium.googlesource.com/chromiumos/third_party/autotest/+/refs/heads/master/docs/test-that.md
+[FAFT]: https://chromium.googlesource.com/chromiumos/third_party/autotest/+/HEAD/docs/faft-design-doc.md
+[FAFT framework]: https://chromium.googlesource.com/chromiumos/third_party/autotest/+/HEAD/docs/faft-code.md
+[servod]: https://chromium.googlesource.com/chromiumos/third_party/hdctools/+/HEAD/docs/servod.md
+[test that]: https://chromium.googlesource.com/chromiumos/third_party/autotest/+/HEAD/docs/test-that.md
