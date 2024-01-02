@@ -2833,19 +2833,6 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
         return self.run(command, ignore_status=True).exit_status == 0
 
 
-    def oobe_triggers_update(self):
-        """Returns True if this host has an OOBE flow during which
-        it will perform an update check and perhaps an update.
-        One example of such a flow is Hands-Off Zero-Touch Enrollment.
-        As more such flows are developed, code handling them needs
-        to be added here.
-
-        @return Boolean indicating whether this host's OOBE triggers an update.
-        """
-        return self.is_chrome_switch_present(
-            '--enterprise-enable-zero-touch-enrollment=hands-off')
-
-
     # TODO(kevcheng): change this to just return the board without the
     # 'board:' prefix and fix up all the callers.  Also look into removing the
     # need for this method.
