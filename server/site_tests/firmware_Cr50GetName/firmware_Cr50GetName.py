@@ -13,14 +13,14 @@ from autotest_lib.server.cros.faft.cr50_test import Cr50Test
 
 
 class firmware_Cr50GetName(Cr50Test):
-    """Verify cr50-get-name.sh
+    """Verify gsc_get_name
 
-    Verify cr50-get-name sets the correct board id and flags based on the
+    Verify gsc_get_name sets the correct board id and flags based on the
     given stage.
     """
     version = 1
 
-    GET_NAME_SCRIPT = '/usr/share/cros/cr50-get-name.sh'
+    GET_NAME_BINARY = '/usr/sbin/gsc_get_name'
     # This translates to 'TEST'
     TEST_BRAND = 0x54455354
     MAX_VAL = 0xffffffff
@@ -31,8 +31,8 @@ class firmware_Cr50GetName(Cr50Test):
         super(firmware_Cr50GetName, self).initialize(host, cmdline_args,
             full_args, restore_cr50_image=True, restore_cr50_board_id=True)
 
-        if not self.host.path_exists(self.GET_NAME_SCRIPT):
-            raise error.TestNAError('Device does not have "cr50-get-name"')
+        if not self.host.path_exists(self.GET_NAME_BINARY):
+            raise error.TestNAError('Device does not have "gsc_get_name"')
 
         efi_path = self.get_saved_eraseflashinfo_image_path()
 
@@ -41,7 +41,7 @@ class firmware_Cr50GetName(Cr50Test):
         cr50_utils.InstallImage(self.host, efi_path, cr50_utils.CR50_PREPVT)
 
         # Update to the eraseflashinfo image so we can erase the board id after
-        # we set it. This test is verifying cr50-get-name, so it is ok if cr50
+        # we set it. This test is verifying gsc_get_name, so it is ok if cr50
         # is running a non-prod image.
         self.cr50_update(self.get_saved_dbg_image_path())
         self.cr50_update(efi_path, rollback=True)
@@ -171,7 +171,7 @@ class firmware_Cr50GetName(Cr50Test):
 
 
     def run_once(self):
-        """Verify cr50-get-name.sh"""
+        """Verify gsc_get_name"""
         # Test the MP flags
         self.run_update(self.TEST_BRAND, 0x7f00)
 

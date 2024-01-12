@@ -19,7 +19,7 @@ blank
 
 The test will rollback to the oldest Cr50 image and then verify each update to
 the next newest image runs successfully. If testing post install, the test will
-update using cr50-update.sh. If testing the startup script the updates will be
+update using gsc_update. If testing the startup script the updates will be
 run with cr50-update.conf after reboot..
 
 The old release needs to have a version lower than the release image. The
@@ -53,7 +53,7 @@ device.
 @param old_release_path: the location of the old release image.
 @param old_release_ver: RW version string used to fetch the image from gs
 @param test: string representing the update type. use "post_install" if the test
-             should verify the cr50-update.sh post install script. Anything else
+             should verify the gsc_update post install script. Anything else
              the test will run using the cr50-update.conf startup script.
 """
 

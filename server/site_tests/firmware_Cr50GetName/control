@@ -6,14 +6,14 @@ from autotest_lib.server import utils
 
 AUTHOR = "mruthven"
 NAME = "firmware_Cr50GetName"
-PURPOSE = "Verify cr50-get-name"
+PURPOSE = "Verify gsc_get_name"
 ATTRIBUTES = "suite:faft_cr50_experimental"
 TIME = "MEDIUM"
 TEST_TYPE = "server"
 DEPENDENCIES = "servo_state:WORKING"
 
 DOC = """
-Verify cr50-get-name.sh returns the right cr50 image based on the board id.
+Verify gsc_get_name returns the right cr50 image based on the board id.
 phase.
 
 @param iterations: Number of times to run the test

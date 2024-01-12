@@ -6,14 +6,14 @@ from autotest_lib.server import utils
 
 AUTHOR = "mruthven"
 NAME = "firmware_Cr50SetBoardId"
-PURPOSE = "Verify cr50-set-board-id"
+PURPOSE = "Verify gsc_set_board_id"
 ATTRIBUTES = "suite:faft_cr50_experimental"
 TIME = "MEDIUM"
 TEST_TYPE = "server"
 DEPENDENCIES = "servo_state:WORKING"
 
 DOC = """
-Verify cr50-set-board-id.sh sets the right board id and flags with the given
+Verify gsc_set_board_id sets the right board id and flags with the given
 phase.
 
 @param iterations: Number of times to run the test
