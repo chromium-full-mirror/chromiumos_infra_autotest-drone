@@ -4,7 +4,7 @@
 
 from autotest_lib.server import utils
 
-AUTHOR = "gredelston, kmshelton, waihong"
+AUTHOR = "gredelston, seancarpenter, waihong"
 NAME = "firmware_FAFTRPC.client"
 PURPOSE = "Verify that the faft rpc client side methods work as expected."
 CRITERIA = "This test will fail if the faft rpc client code is broken."

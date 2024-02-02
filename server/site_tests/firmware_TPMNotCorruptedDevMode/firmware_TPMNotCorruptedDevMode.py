@@ -28,7 +28,7 @@ class firmware_TPMNotCorruptedDevMode(FirmwareTest):
     KERNEL_ANTIROLLBACK_SPACE_BYTES = 0xd
     KERNEL_ANTIROLLBACK_SPACE_BYTES_v10 = 0x28
     KERNEL_NV_INDEX = 0x1008
-    # TODO(kmshelton): This test intends to check whether the kernel version
+    # TODO(seancarpenter): This test intends to check whether the kernel version
     # stored in the TPM's NVRAM is corrupted during a transition from normal
     # mode to dev mode (according to it's objective in an internal tool named
     # test tracker).  Figure out why a specific kernel version is checked for,

@@ -4,7 +4,7 @@
 
 from autotest_lib.server import utils
 
-AUTHOR = "gredelston, kmshelton, waihong"
+AUTHOR = "gredelston, seancarpenter, waihong"
 NAME = "firmware_FAFTRPC.ec"
 PURPOSE = "Verify that the RPC system, and all EC RPCs, work as expected."
 CRITERIA = "This test will fail if the EC system is not set up correctly."

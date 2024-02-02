@@ -70,7 +70,7 @@ class firmware_ECLidShutdown(FirmwareTest):
         restores the device.
         """
         self.clear_set_gbb_flags(vboot.GBB_FLAG_DISABLE_LID_SHUTDOWN, 0)
-        # TODO(kmshelton): Simplify to not use recovery mode.
+        # TODO(seancarpenter): Simplify to not use recovery mode.
         self.faft_client.system.request_recovery_boot()
         self.servo.set('lid_open', 'no')
         time.sleep(self.LID_POWER_STATE_DELAY)
