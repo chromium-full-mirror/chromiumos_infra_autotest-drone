@@ -17,7 +17,7 @@ class platform_InputScreenshot(test.test):
     version = 1
     _WAIT = 5
     _TMP = '/tmp'
-    _DOWNLOADS = '/home/chronos/user/Downloads'
+    _DOWNLOADS = '/home/chronos/user/MyFiles/Downloads'
     _SCREENSHOT = 'Screenshot*'
     _ERROR = list()
     _MIN_SIZE = 1000

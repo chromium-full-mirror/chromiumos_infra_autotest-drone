@@ -25,7 +25,7 @@ class autoupdate_UserData(update_engine_test.UpdateEngineTest):
     """
     version = 1
 
-    _TEST_FILE = '/home/chronos/user/Downloads/test.txt'
+    _TEST_FILE = '/home/chronos/user/MyFiles/Downloads/test.txt'
     _US_IME = '_comp_ime_jkghodnilhceideoidjikpgommlajknkxkb:us::eng'
     _US_INTL_IME = '_comp_ime_jkghodnilhceideoidjikpgommlajknkxkb:us:intl:eng'
     _TIME_ZONE_PREF = 'generated.resolve_timezone_by_geolocation_on_off'

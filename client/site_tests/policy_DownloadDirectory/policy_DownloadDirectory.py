@@ -24,7 +24,7 @@ class policy_DownloadDirectory(
     POLICY_NAME = 'DownloadDirectory'
     _DOWNLOAD_BASE = ('http://commondatastorage.googleapis.com/'
                       'chromiumos-test-assets-public/audio_power/')
-    DOWNLOAD_DIR = '/home/chronos/user/Downloads/download'
+    DOWNLOAD_DIR = '/home/chronos/user/MyFiles/Downloads/download'
     POLICY_SETTING = {'PromptForDownloadLocation': False}
 
     def run_once(self, case):

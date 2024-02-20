@@ -32,7 +32,7 @@ class policy_DisableScreenshots(
     def _initialize_test_constants(self):
         """Initialize test-specific constants, some from class constants."""
         self.POLICY_NAME = 'DisableScreenshots'
-        self._DOWNLOADS = '/home/chronos/user/Downloads/'
+        self._DOWNLOADS = '/home/chronos/user/MyFiles/Downloads/'
         self._SCREENSHOT_PATTERN = 'Screenshot*'
         self._SCREENSHOT_FILENAME = self._DOWNLOADS + self._SCREENSHOT_PATTERN
 

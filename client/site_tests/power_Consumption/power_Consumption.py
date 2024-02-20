@@ -64,7 +64,7 @@ class power_Consumption(test.test):
         utils.extract_tarball_to_dir(
                 'static_sites.tgz.keep',
                 os.path.join(self.bindir, self._static_sub_dir))
-        self._media_dir = '/home/chronos/user/Downloads/'
+        self._media_dir = '/home/chronos/user/MyFiles/Downloads/'
         self._httpd_port = 8000
         self._url_base = 'http://localhost:%s/' % self._httpd_port
         self._test_server = httpd.HTTPListener(self._httpd_port,

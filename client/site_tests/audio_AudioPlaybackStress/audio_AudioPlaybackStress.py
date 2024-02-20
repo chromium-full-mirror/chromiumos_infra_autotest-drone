@@ -24,7 +24,7 @@ class audio_AudioPlaybackStress(power_test.power_Test):
     """
 
     version = 1
-    _PLAYBACK_LOCATION = '/home/chronos/user/Downloads'
+    _PLAYBACK_LOCATION = '/home/chronos/user/MyFiles/Downloads'
     _FILES_APP_NAME = 'files'
 
     # Timeout delay for clicking ui elements in seconds

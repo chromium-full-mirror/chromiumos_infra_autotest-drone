@@ -193,7 +193,7 @@ class BluetoothSemiAutoHelper(semiauto_framework.semiauto_test):
         audio_dir = os.path.join(self.bindir, '..', '..', 'cros', 'audio')
         loop_file = os.path.join(audio_dir, 'loop.html')
         music_file = os.path.join(audio_dir, 'music.mp3')
-        dl_dir = os.path.join(user_home, 'Downloads')
+        dl_dir = os.path.join(user_home, 'MyFiles', 'Downloads')
         self._added_loop_file = os.path.join(dl_dir, 'loop.html')
         self._added_music_file = os.path.join(dl_dir, 'music.mp3')
         shutil.copyfile(loop_file, self._added_loop_file)
@@ -209,7 +209,8 @@ class BluetoothSemiAutoHelper(semiauto_framework.semiauto_test):
         self._settings_tab = self._browser.tabs.New()
         self._settings_tab.Navigate('chrome://settings/search#Bluetooth')
         music_tab = self._browser.tabs.New()
-        music_tab.Navigate('file:///home/chronos/user/Downloads/loop.html')
+        music_tab.Navigate(
+                'file:///home/chronos/user/MyFiles/Downloads/loop.html')
 
     def ask_user(self, message):
         """Ask the user a yes or no question in an open tab.
