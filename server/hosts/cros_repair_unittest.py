@@ -37,7 +37,6 @@ CROS_VERIFY_DAG = (
         (cros_repair.ProvisioningLabelsVerifier, 'provisioning_labels',
          ('ssh', )),
         (cros_repair.StopStartUIVerifier, 'stop_start_ui', ('ssh', )),
-        (cros_repair.DUTStorageVerifier, 'storage', ('ssh', )),
         (cros_repair.AuditBattery, 'audit_battery', ()),
         (cros_repair.GscToolPresentVerifier, 'dut_gsctool', ('ssh', )),
         (cros_repair.ServoKeyboardMapVerifier, 'dut_servo_keyboard',

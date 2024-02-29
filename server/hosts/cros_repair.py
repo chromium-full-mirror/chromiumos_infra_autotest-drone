@@ -32,7 +32,6 @@ from autotest_lib.server.cros.repair import mac_address_helper
 from autotest_lib.server.hosts import cros_constants
 from autotest_lib.server.hosts import cros_firmware
 from autotest_lib.server.hosts import repair_utils
-from autotest_lib.site_utils.admin_audit import verifiers as audit_verify
 from autotest_lib.site_utils.admin_audit import constants as audit_const
 from autotest_lib.site_utils.admin_audit import battery_validator
 from six.moves import range
@@ -849,32 +848,6 @@ class ServoUSBDriveVerifier(hosts.Verifier):
         return 'Ensure USB drive on Servo is in good state.'
 
 
-class DUTStorageVerifier(hosts.Verifier):
-    """Verify that main storage on DUT is good to use.
-
-    Check if DUT drive is providing good SMART stats which not showing any
-    issues on it. The verifier can mark DUT for replacement if SMART stats
-    show outworn data.
-    """
-
-    @timeout_util.TimeoutDecorator(cros_constants.VERIFY_TIMEOUT_SEC)
-    def verify(self, host):
-        # pylint: disable=missing-docstring
-        verifier = audit_verify.VerifyDutStorage(host)
-        verifier.verify(set_label=True, run_badblocks='NOT')
-        state = verifier.get_state() or audit_const.HW_STATE_UNKNOWN
-        if not state:
-            raise hosts.AutoservNonCriticalVerifyError(
-                    'DUT storage did not detected or state cannot extracted.')
-        if state == audit_const.HW_STATE_NEED_REPLACEMENT:
-            logging.info('Detected issue with storage on the DUT.')
-            host.set_device_needs_replacement()
-
-    @property
-    def description(self):
-        return 'Ensure DUT storage SMART information is in good state.'
-
-
 class AuditBattery(hosts.Verifier):
     """Verify that battery on DUT is good to use.
 
@@ -1576,7 +1549,6 @@ def _cros_verify_extended_dag():
     """Return the extended verification DAG for a `CrosHost`."""
     return (
             (StopStartUIVerifier, 'stop_start_ui', ('ssh', )),
-            (DUTStorageVerifier, 'storage', ('ssh', )),
             (AuditBattery, 'audit_battery', ()),
             (GscToolPresentVerifier, 'dut_gsctool', ('ssh', )),
             (ServoKeyboardMapVerifier, 'dut_servo_keyboard', ('ssh', )),
