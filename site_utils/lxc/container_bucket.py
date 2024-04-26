@@ -293,6 +293,11 @@ class ContainerBucket(object):
                  False),
         ])
 
+        # Add Docker TLS certs.
+        docker_cert_path = os.environ.get("DOCKER_CERT_PATH")
+        if docker_cert_path:
+            mount_entries.extend([(docker_cert_path, docker_cert_path, True)])
+
         # Update container config to mount directories.
         for source, destination, readonly in mount_entries:
             container.mount_dir(source, destination, readonly)
@@ -309,7 +314,10 @@ class ContainerBucket(object):
         container.limit_resource(resource_limits)
         container.set_environment(
                 SWARMING_TASK_ID=common_utils.get_swarming_task_id(),
-                BUILD_BUCKET_ID=common_utils.get_build_bucket_id())
+                BUILD_BUCKET_ID=common_utils.get_build_bucket_id(),
+                DOCKER_CERT_PATH=os.environ.get("DOCKER_CERT_PATH"),
+                DOCKER_HOST=os.environ.get("DOCKER_HOST"),
+                DOCKER_TLS_VERIFY=os.environ.get("DOCKER_TLS_VERIFY"))
 
         container.start(wait_for_network=True, log_dir=result_path)
         deploy_config_manager.deploy_post_start()
