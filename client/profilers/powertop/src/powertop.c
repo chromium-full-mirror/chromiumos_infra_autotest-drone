@@ -820,8 +820,8 @@ int main(int argc, char **argv)
 
 	if (!dump)
 		ticktime = 5.0;
- 
-	system("/sbin/modprobe cpufreq_stats &> /dev/null");
+
+	system("/usr/bin/modprobe cpufreq_stats &> /dev/null");
 	read_data(&start_usage[0], &start_duration[0]);
 
 

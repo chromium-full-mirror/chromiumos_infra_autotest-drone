@@ -965,7 +965,7 @@ def load_module(module_name, params=None):
     if module_is_loaded(module_name):
         return False
 
-    cmd = '/sbin/modprobe ' + module_name
+    cmd = '/usr/bin/modprobe ' + module_name
     if params:
         cmd += ' ' + params
     utils.system(cmd)
@@ -980,7 +980,7 @@ def unload_module(module_name):
     @param module_name: Name of the module we want to remove.
     """
     module_name = module_name.replace('-', '_')
-    l_raw = utils.system_output("/bin/lsmod").splitlines()
+    l_raw = utils.system_output("/usr/bin/lsmod").splitlines()
     lsmod = [x for x in l_raw if x.split()[0] == module_name]
     if len(lsmod) > 0:
         line_parts = lsmod[0].split()
@@ -988,7 +988,7 @@ def unload_module(module_name):
             submodules = line_parts[3].split(",")
             for submodule in submodules:
                 unload_module(submodule)
-        utils.system("/sbin/modprobe -r %s" % module_name)
+        utils.system("/usr/bin/modprobe -r %s" % module_name)
         logging.info("Module %s unloaded", module_name)
     else:
         logging.info("Module %s is already unloaded", module_name)
@@ -996,7 +996,7 @@ def unload_module(module_name):
 
 def module_is_loaded(module_name):
     module_name = module_name.replace('-', '_')
-    modules = utils.system_output('/bin/lsmod').splitlines()
+    modules = utils.system_output('/usr/bin/lsmod').splitlines()
     for module in modules:
         if module.startswith(module_name) and module[len(module_name)] == ' ':
             return True
