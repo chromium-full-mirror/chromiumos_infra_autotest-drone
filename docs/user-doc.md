@@ -71,9 +71,9 @@ repository, rather from a staging read-only install location. This leads to
 certain differences in workflow:
 
 -   Source may live in an arbitrary location or can be generated on the fly.
-    Anything that can be created as an ebuild (shell script) can be a test source.
-    (cros-workon may be utilised, introducing a fairly standard Chromium OS
-    project workflow)
+    Anything that can be created as an ebuild (shell script) can be a test
+    source. (`cros workon` may be utilised, introducing a fairly standard
+    Chromium OS project workflow)
 -   The staging location (`/build/${board}/usr/local/autotest/`) may not be
     modified; if one wants to modify it, they have to find the source to it
     (using other tools, see FAQ).
@@ -88,7 +88,7 @@ An **autotest ebuild** is an ebuild that produces test cases and installs them i
 the staging area. It has three general tasks:
 
 -   Obtain the source - This is generally (but not necessarily) provided by
-    ‘cros-workon’ eclass. It could also work with the more standard tarball
+    `cros-workon` eclass. It could also work with the more standard tarball
     SRC_URI pathway or generally any shell code executed in `src_unpack()`.
 -   Prepare test cases - This includes, but is not limited to preprocessing any
     source, copying source files or intermediate binaries into the expected
@@ -429,34 +429,47 @@ control.\<testcase\>. These tests' NAMEs are then
 
 1.  Set up the environment.
 
-        $ cd ~/trunk/src/third_party/autotest/files/
-        $ export TESTS=”<the test cases to iterate on>”
-        $ EBUILD=<the ebuild that contains TEST>
-        $ board=<the board on which to develop>
+    ```
+    $ cd ~/trunk/src/third_party/autotest/files/
+    $ export TESTS=”<the test cases to iterate on>”
+    $ EBUILD=<the ebuild that contains TEST>
+    $ board=<the board on which to develop>
+    ```
 
-2.  Ensure cros_workon is started
+2.  Ensure `cros workon` is started
 
-        $ cros_workon --board=${board} start ${EBUILD}
-        $ repo sync # Necessary only if you use minilayout.
+    ```
+    $ cros workon --board=${board} start ${EBUILD}
+    $ repo sync # Necessary only if you use minilayout.
+    ```
 
 3.  Make modifications (on first run, you may want to just do 3,4 to verify
     everything works before you touch it \& break it)
 
-        $ ...
+    ```
+    $ ...
+    ```
 
 4.  Build test (TESTS= is not necessary if you exported it before)
 
-        $ emerge-$board $EBUILD
+    ```
+    $ emerge-$board $EBUILD
+    ```
 
 5.  Run test to make sure it works before you touch it
 
-        $ test_that <machine IP> ${TESTS}
+    ```
+    $ test_that <machine IP> ${TESTS}
+    ```
 
 6.  Go to 2) to iterate
+
 7.  Clean up environment
 
-        $ cros_workon --board=${board} stop ${EBUILD}
-        $ unset TESTS
+    ```
+    $ cros workon --board=${board} stop ${EBUILD}
+    $ unset TESTS
+    ```
 
 ### W2. Creating a test - steps and checklist
 
@@ -466,23 +479,34 @@ When creating a test, the following steps should be done/verified.
     control file
 2.  Find the appropriate ebuild package and start working on it:
 
-        $ cros_workon --board=${board} start <package>
+    ```
+    $ cros workon --board=${board} start <package>
+    ```
 
 3.  Add the new test into the IUSE_TESTS list of 9999 ebuild
+
 4.  Try building: (make sure it’s the 9999 version being built)
 
-        $ TESTS=<test> emerge-$board <package>
+    ```
+    $ TESTS=<test> emerge-$board <package>
+    ```
 
 5.  Try running:
 
-        $ test_that <IP> <test>
+    ```
+    $ test_that <IP> <test>
+    ```
 
 6.  Iterate on 4,5 and modify source until happy with the initial version.
+
 7.  Commit test source first, when it is safely in, commit the 9999 ebuild
     version change.
+
 8.  Cleanup
 
-         $ cros_workon --board=${board} stop <package>
+    ```
+     $ cros workon --board=${board} stop <package>
+    ```
 
 ### W3. Splitting autotest ebuild into two
 
@@ -648,11 +672,11 @@ $ equery-$board uses ${ebuild_name}
  - - tests_disabled_test                      : <unknown>
 ```
 
-### Q5: I’m working on some test sources, how do I know which ebuilds to cros_workon start in order to properly propagate?
+### Q5: I’m working on some test sources, how do I know which ebuilds to `cros workon start` in order to properly propagate?
 
-You should ‘workon’ and always cros_workon start all ebuilds that have files
-that you touched.  If you’re interested in a particular file/directory, that
-is installed in `/build/$board/usr/local/autotest/` and would like know which
+You should ‘workon’ and always `cros workon start` all ebuilds that have files
+that you touched. If you’re interested in a particular file/directory, that is
+installed in `/build/$board/usr/local/autotest/` and would like know which
 package has provided that file, you can use equery:
 
 ```
@@ -670,7 +694,7 @@ shared libraries (anything besides
 chromeos-base/autotest. Individual test case will each belong to a particular
 ebuild, see Q2.
 
-It is important to cros_workon start every ebuild involved.
+It is important to `cros workon start` every ebuild involved.
 
 ### Q6: I created a test, added it into ebuild, emerged it, and I’m getting access denied failures. What did I do wrong?
 
