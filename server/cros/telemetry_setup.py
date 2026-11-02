@@ -123,8 +123,8 @@ class TelemetrySetup(object):
     # below: tar pipes into zstd, so the frame always declares the full
     # window, and 2**27 is the largest window zstd decodes without extra flags.
     #
-    # TODO(b/563203733): Drop '.tar.bz2' once no supported (including LTS)
-    # branch publishes it.
+    # TODO(b/580903568): Drop '.tar.bz2' once pre-R158 branches (including
+    # R156 LTS) reach EOL.
     _TARBALL_SUFFIXES = [
             _ZSTD_TARBALL_SUFFIX,
             _BZIP2_TARBALL_SUFFIX,
